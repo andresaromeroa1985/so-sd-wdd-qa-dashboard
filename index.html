@@ -333,7 +333,6 @@ tbody tr:hover td { background: var(--bg); }
             <option value="all">All months</option>
             <option value="1">January</option><option value="2">February</option>
             <option value="3">March</option><option value="4">April</option>
-            <option value="5">May</option><option value="6">June</option>
           </select>
         </div>
         <div class="fsep"></div>
@@ -398,15 +397,10 @@ tbody tr:hover td { background: var(--bg); }
       <div class="panel">
         <div class="ph">
           <div class="pt">All builds <span class="ptn" id="table-count"></span></div>
-          <div class="tab-bar">
-            <button class="tab-btn active" onclick="setTab('all',this)">All</button>
-            <button class="tab-btn" onclick="setTab('copy',this)">Copy</button>
-            <button class="tab-btn" onclick="setTab('design',this)">Design</button>
-          </div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Business</th><th>Designer</th><th>Type</th><th>Score</th></tr></thead>
+            <thead><tr><th>Date</th><th>Business</th><th>Designer</th><th>Copy QA</th><th>Design QA</th></tr></thead>
             <tbody id="table-body"></tbody>
           </table>
         </div>
@@ -420,7 +414,6 @@ tbody tr:hover td { background: var(--bg); }
           <option value="all">All months (combined)</option>
           <option value="1">January</option><option value="2">February</option>
           <option value="3">March</option><option value="4">April</option>
-          <option value="5">May</option><option value="6">June</option>
         </select>
         <span class="bonus-rules">Rules: ≥7 builds &nbsp;·&nbsp; combined avg ≥95% &nbsp;·&nbsp; Elizabeth &amp; Daniela exempt</span>
       </div>
@@ -435,76 +428,162 @@ tbody tr:hover td { background: var(--bg); }
 // ============================================================
 //  ⚙️  CONFIGURATION — paste your Web App URLs here
 // ============================================================
-const COPY_QA_URL   = 'https://script.google.com/macros/s/AKfycbwS24Osis8YPSpBtYbl1HOo6BopEF9-KKni5oOFid0BGuAxpXazYdrJYHg2OBvKjP45jg/exec';
-const DESIGN_QA_URL = 'https://script.google.com/macros/s/AKfycbyPiVxBgM_rrDbY9ZApigutMA0li9fzyefarva2NFqxTBlJurMuqGXF5XbQRxP1QpfV2A/exec';
+const COPY_QA_URL   = 'PASTE_COPY_QA_APPS_SCRIPT_URL_HERE';
+const DESIGN_QA_URL = 'PASTE_DESIGN_QA_APPS_SCRIPT_URL_HERE';
 // ============================================================
 
-let ALL_DATA = [];
-let tableTab = 'all';
+// Canonical designer name map — normalizes accent/spelling variants from either sheet
+const NAME_MAP = {
+  'javier perez':   'Javier Pérez',
+  'javier pérez':   'Javier Pérez',
+  'plinio ramirez': 'Plinio Ramírez',
+  'plinio ramírez': 'Plinio Ramírez',
+  'diego diaz':     'Diego Díaz',
+  'diego díaz':     'Diego Díaz',
+  'marco garcia':   'Marco García',
+  'marco garcía':   'Marco García',
+  'daniel mateos':  'Daniel Mateos',
+  'daniela nava':   'Daniela Nava',
+  'eder moreno':    'Eder Moreno',
+  'elizabeth mell': 'Elizabeth Mell',
+  'miriam galindo': 'Miriam Galindo',
+};
+function normalizeName(n) {
+  return NAME_MAP[n.toLowerCase().trim()] || n.trim();
+}
 
-// JSONP loader — avoids CORS issues with Apps Script Web Apps
+// Normalize account names for matching across sheets (lowercase, collapse whitespace)
+function normKey(s) {
+  return s.toLowerCase().replace(/\s+/g, ' ').trim()
+    // handle known spelling variants
+    .replace("little gridlle", "little griddle")
+    .replace("el tocayo birrieria estilo tijuana hesperia #1", "birriería el tocayo")
+    .replace("cocky's coop", "cocky's coop")  // already consistent
+    .replace("birriería el tocayo", "el tocayo")
+    .replace("el tocayo birrieria estilo tijuana hesperia #1", "el tocayo");
+}
+
+// ALL_DATA: raw arrays from each sheet. BUILDS: merged one-per-build.
+let RAW_COPY   = [];
+let RAW_DESIGN = [];
+let BUILDS     = []; // [{date, designer, account, month, copyScore, designScore}]
+
+const MN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ── JSONP ─────────────────────────────────────────────────────
 function jsonp(url) {
   return new Promise((resolve, reject) => {
     const cbName = '_cb_' + Math.random().toString(36).slice(2);
     const script = document.createElement('script');
     const timeout = setTimeout(() => {
       cleanup();
-      reject(new Error('Request timed out. Check that the Apps Script URL is correct and deployed as "Anyone" can access.'));
+      reject(new Error('Request timed out. Check the Apps Script URL is correct and deployed as "Anyone" can access.'));
     }, 15000);
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
+    function cleanup() { clearTimeout(timeout); delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); }
     window[cbName] = function(data) { cleanup(); resolve(data); };
-    script.onerror = function() { cleanup(); reject(new Error('Script load failed. Verify the Apps Script /exec URL and that access is set to "Anyone".')); };
+    script.onerror = function() { cleanup(); reject(new Error('Script load failed. Verify the /exec URL and "Anyone" access setting.')); };
     script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
     document.head.appendChild(script);
   });
 }
 
+// ── MERGE BUILDS ──────────────────────────────────────────────
+// Match copy and design rows by (normalized account name + normalized designer name + month).
+// Result: one build row with both scores. Unmatched rows show only the score they have.
+function mergeBuilds(copyRows, designRows) {
+  const builds = [];
+  const designUsed = new Set();
+
+  copyRows.forEach((c, ci) => {
+    const ck = normKey(c.account) + '|' + normalizeName(c.designer).toLowerCase() + '|' + c.month;
+    // find matching design row
+    let matchIdx = -1;
+    for (let di = 0; di < designRows.length; di++) {
+      if (designUsed.has(di)) continue;
+      const d = designRows[di];
+      const dk = normKey(d.account) + '|' + normalizeName(d.designer).toLowerCase() + '|' + d.month;
+      if (dk === ck) { matchIdx = di; break; }
+    }
+    const designRow = matchIdx >= 0 ? designRows[matchIdx] : null;
+    if (matchIdx >= 0) designUsed.add(matchIdx);
+
+    builds.push({
+      date:        c.date,
+      designer:    normalizeName(c.designer),
+      account:     c.account,
+      month:       c.month,
+      monthName:   c.monthName,
+      copyScore:   c.score,
+      designScore: designRow ? designRow.score : null,
+    });
+  });
+
+  // Any design rows that had no copy match
+  designRows.forEach((d, di) => {
+    if (designUsed.has(di)) return;
+    builds.push({
+      date:        d.date,
+      designer:    normalizeName(d.designer),
+      account:     d.account,
+      month:       d.month,
+      monthName:   d.monthName,
+      copyScore:   null,
+      designScore: d.score,
+    });
+  });
+
+  return builds.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+// ── LOAD ──────────────────────────────────────────────────────
 async function loadData() {
   const btn = document.getElementById('refresh-btn');
   btn.classList.add('spinning');
   document.getElementById('error-msg').style.display = 'none';
-  const isFirst = ALL_DATA.length === 0;
-  if (isFirst) {
+
+  if (!BUILDS.length) {
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('dashboard').style.display = 'none';
     document.getElementById('footer').style.display = 'none';
   }
+
   if (COPY_QA_URL.includes('PASTE') || DESIGN_QA_URL.includes('PASTE')) {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('footer').style.display = 'block';
     document.getElementById('setup-warning').style.display = 'block';
     btn.classList.remove('spinning');
-    ALL_DATA = [];
+    BUILDS = [];
     renderAll();
     return;
   }
+
   try {
-    const [copyRes, designRes] = await Promise.all([
-      jsonp(COPY_QA_URL),
-      jsonp(DESIGN_QA_URL)
-    ]);
+    const [copyRes, designRes] = await Promise.all([jsonp(COPY_QA_URL), jsonp(DESIGN_QA_URL)]);
     if (copyRes.status !== 'ok')   throw new Error('Copy QA script error: ' + copyRes.message);
     if (designRes.status !== 'ok') throw new Error('Design QA script error: ' + designRes.message);
-    ALL_DATA = [...copyRes.data, ...designRes.data];
-    const designers = [...new Set(ALL_DATA.map(r => r.designer))].sort();
+
+    RAW_COPY   = copyRes.data.map(r => ({ ...r, designer: normalizeName(r.designer) }));
+    RAW_DESIGN = designRes.data.map(r => ({ ...r, designer: normalizeName(r.designer) }));
+    BUILDS     = mergeBuilds(RAW_COPY, RAW_DESIGN);
+
+    // Populate designer filter from merged builds
+    const designers = [...new Set(BUILDS.map(b => b.designer))].sort();
     const sel = document.getElementById('f-designer');
     const cur = sel.value;
     sel.innerHTML = '<option value="all">All designers</option>';
     designers.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
     if (cur !== 'all') sel.value = cur;
-    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     document.getElementById('loading').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('footer').style.display = 'block';
     renderAll();
   } catch (err) {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('dashboard').style.display = ALL_DATA.length ? 'block' : 'none';
+    document.getElementById('dashboard').style.display = BUILDS.length ? 'block' : 'none';
     const e = document.getElementById('error-msg');
     e.style.display = 'block';
     e.textContent = '⚠ ' + err.message;
@@ -512,34 +591,41 @@ async function loadData() {
   btn.classList.remove('spinning');
 }
 
+// ── FILTERS ───────────────────────────────────────────────────
 function getFilters() {
   return {
     designer: document.getElementById('f-designer').value,
     month:    document.getElementById('f-month').value,
-    type:     document.getElementById('f-type').value,
     score:    document.getElementById('f-score').value,
   };
 }
 
-function applyFilters(data, f) {
-  return data.filter(r => {
-    if (f.designer !== 'all' && r.designer !== f.designer) return false;
-    if (f.month    !== 'all' && r.month !== parseInt(f.month)) return false;
-    if (f.type     !== 'all' && r.type  !== f.type)  return false;
-    if (f.score === '100'     && r.score !== 100)    return false;
-    if (f.score === '95'      && r.score < 95)       return false;
-    if (f.score === '90'      && r.score < 90)       return false;
-    if (f.score === 'below90' && r.score >= 90)      return false;
+function applyFilters(builds, f) {
+  return builds.filter(b => {
+    if (f.designer !== 'all' && b.designer !== f.designer) return false;
+    if (f.month    !== 'all' && b.month !== parseInt(f.month)) return false;
+    // Score filter: applies to whichever scores exist (either exceeds threshold)
+    if (f.score === '100')    { if (b.copyScore !== 100 || b.designScore !== 100) return false; }
+    if (f.score === '95')     { const s = avgScore(b); if (s === null || s < 95)  return false; }
+    if (f.score === '90')     { const s = avgScore(b); if (s === null || s < 90)  return false; }
+    if (f.score === 'below90'){ const s = avgScore(b); if (s === null || s >= 90) return false; }
     return true;
   });
 }
 
 function resetFilters() {
-  ['f-designer','f-month','f-type','f-score'].forEach(id => document.getElementById(id).value = 'all');
+  ['f-designer','f-month','f-score'].forEach(id => document.getElementById(id).value = 'all');
   renderAll();
 }
 
-function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+// ── HELPERS ───────────────────────────────────────────────────
+function avg(arr) { return arr.length ? arr.reduce((a,b) => a+b, 0) / arr.length : 0; }
+
+// Average score for a single build (average of copy + design if both exist)
+function avgScore(b) {
+  if (b.copyScore !== null && b.designScore !== null) return (b.copyScore + b.designScore) / 2;
+  return b.copyScore ?? b.designScore;
+}
 
 function scoreColor(s) {
   if (s >= 100) return 'var(--green-text)';
@@ -548,60 +634,66 @@ function scoreColor(s) {
   return 'var(--red-text)';
 }
 
-function scoreChipStyle(s) {
+function chipStyle(s) {
+  if (s === null || s === undefined) return 'background:var(--bg);color:var(--text3)';
   if (s >= 100) return 'background:var(--green-dim);color:var(--green-text)';
   if (s >= 95)  return 'background:var(--lime-dim);color:var(--lime)';
   if (s >= 90)  return 'background:var(--yellow-dim);color:var(--yellow-text)';
   return 'background:var(--red-dim);color:var(--red-text)';
 }
 
-const MN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-function setTab(tab, btn) {
-  tableTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderTable(applyFilters(ALL_DATA, getFilters()));
-}
-
+// ── RENDER ALL ────────────────────────────────────────────────
 function renderAll() {
   const f = getFilters();
-  const filtered = applyFilters(ALL_DATA, f);
-  const copy   = filtered.filter(r => r.type === 'copy');
-  const design = filtered.filter(r => r.type === 'design');
-  document.getElementById('filter-info').innerHTML = `<span>${filtered.length}</span> record${filtered.length !== 1 ? 's' : ''}`;
-  renderInsights(filtered, copy, design);
-  renderStats(filtered, copy, design);
-  renderDesignerList('copy-list',   copy,   'var(--copy)',   'var(--copy-dim)');
-  renderDesignerList('design-list', design, 'var(--design)', 'var(--design-dim)');
-  renderMonthChart(copy, design);
+  const filtered = applyFilters(BUILDS, f);
+
+  document.getElementById('filter-info').innerHTML =
+    `<span>${filtered.length}</span> build${filtered.length !== 1 ? 's' : ''}`;
+
+  renderInsights(filtered);
+  renderStats(filtered);
+  renderDesignerList('copy-list',   filtered, 'copy');
+  renderDesignerList('design-list', filtered, 'design');
+  renderMonthChart(filtered);
   renderTable(filtered);
   renderBonus();
 }
 
-function topByAvg(data) {
-  const map = {};
-  data.forEach(r => { if (!map[r.designer]) map[r.designer] = []; map[r.designer].push(r.score); });
-  let best = { name:'', avg:0 };
-  Object.entries(map).forEach(([d, s]) => { const a = avg(s); if (a > best.avg) best = { name: d, avg: a }; });
-  return best;
-}
-
-function renderInsights(all, copy, design) {
+// ── INSIGHTS ──────────────────────────────────────────────────
+function renderInsights(builds) {
   const el = document.getElementById('insight-grid');
-  if (!all.length) { el.innerHTML = '<div class="empty">No data matches your filters.</div>'; return; }
-  const best    = all.reduce((a,b) => a.score >= b.score ? a : b, all[0]);
-  const perfect = all.filter(r => r.score === 100).length;
-  const below90 = all.filter(r => r.score < 90).length;
-  const topCopy = topByAvg(copy), topDes = topByAvg(design);
+  if (!builds.length) { el.innerHTML = '<div class="empty">No data matches your filters.</div>'; return; }
+
+  // Perfect build = BOTH copy AND design are 100
+  const perfect = builds.filter(b => b.copyScore === 100 && b.designScore === 100).length;
+
+  // Below 90: avg of both scores < 90 (or either score < 90 if only one exists)
+  const below90 = builds.filter(b => { const s = avgScore(b); return s !== null && s < 90; }).length;
+
+  // Top designer by avg combined score
+  function topDesigner(scoreKey) {
+    const map = {};
+    builds.forEach(b => {
+      const s = b[scoreKey];
+      if (s === null) return;
+      if (!map[b.designer]) map[b.designer] = [];
+      map[b.designer].push(s);
+    });
+    let best = { name: '', avg: 0 };
+    Object.entries(map).forEach(([d, scores]) => { const a = avg(scores); if (a > best.avg) best = { name: d, avg: a }; });
+    return best;
+  }
+  const topCopy   = topDesigner('copyScore');
+  const topDesign = topDesigner('designScore');
+
   const cards = [
-    { icon:'🏆', bg:'var(--green-dim)',   c:'var(--green-text)',  label:'Best score',    value: best.score,            sub: best.account },
-    { icon:'✅', bg:'var(--lime-dim)',     c:'var(--lime)',        label:'Perfect builds',value: perfect,               sub: `out of ${all.length} total` },
-    { icon:'⚠️', bg:'var(--red-dim)',     c:'var(--red-text)',    label:'Below 90',      value: below90,               sub: `${((below90/all.length)*100).toFixed(0)}% of all builds` },
-    { icon:'📝', bg:'var(--copy-dim)',    c:'var(--copy-text)',   label:'Top Copy QA',   value: topCopy.name  || '—',  sub: topCopy.name  ? `avg ${topCopy.avg.toFixed(1)}`  : '' },
-    { icon:'🎨', bg:'var(--design-dim)', c:'var(--design-text)', label:'Top Design QA', value: topDes.name   || '—',  sub: topDes.name   ? `avg ${topDes.avg.toFixed(1)}`   : '' },
-    { icon:'📦', bg:'var(--brand-dim)',  c:'var(--brand)',       label:'Total builds',  value: all.length,            sub: `${copy.length} copy · ${design.length} design` },
+    { icon:'✅', bg:'var(--lime-dim)',     c:'var(--lime)',        label:'Perfect builds',  value: perfect,              sub: `both Copy & Design = 100` },
+    { icon:'⚠️', bg:'var(--red-dim)',     c:'var(--red-text)',    label:'Below 90',        value: below90,              sub: `${((below90/builds.length)*100).toFixed(0)}% of all builds` },
+    { icon:'📝', bg:'var(--copy-dim)',    c:'var(--copy-text)',   label:'Top Copy QA',     value: topCopy.name  || '—', sub: topCopy.name  ? `avg ${topCopy.avg.toFixed(1)}`  : '' },
+    { icon:'🎨', bg:'var(--design-dim)', c:'var(--design-text)', label:'Top Design QA',   value: topDesign.name|| '—', sub: topDesign.name? `avg ${topDesign.avg.toFixed(1)}`:''},
+    { icon:'📦', bg:'var(--brand-dim)',  c:'var(--brand)',       label:'Total builds',    value: builds.length,        sub: `${builds.filter(b=>b.copyScore!==null).length} w/ copy · ${builds.filter(b=>b.designScore!==null).length} w/ design` },
   ];
+
   el.innerHTML = cards.map(c => `
     <div class="ic">
       <div class="ic-icon" style="background:${c.bg}">${c.icon}</div>
@@ -613,18 +705,28 @@ function renderInsights(all, copy, design) {
     </div>`).join('');
 }
 
-function renderStats(all, copy, design) {
+// ── STATS ─────────────────────────────────────────────────────
+function renderStats(builds) {
   const el = document.getElementById('stat-grid');
-  if (!all.length) { el.innerHTML = ''; return; }
-  const ca = avg(copy.map(r=>r.score)), da = avg(design.map(r=>r.score)), oa = avg(all.map(r=>r.score));
+  if (!builds.length) { el.innerHTML = ''; return; }
+
+  const copyScores   = builds.filter(b => b.copyScore   !== null).map(b => b.copyScore);
+  const designScores = builds.filter(b => b.designScore !== null).map(b => b.designScore);
+  const ca = avg(copyScores), da = avg(designScores);
+  const oa = (ca + da) / 2;
+
+  // Designers = unique normalized names — should be 9
+  const uniqueDesigners = new Set(builds.map(b => b.designer)).size;
+
   const cards = [
-    { label:'Copy QA avg',    value: copy.length   ? ca.toFixed(1) : '—', sub:`${copy.length} builds`,   stripe:'var(--copy)' },
-    { label:'Design QA avg',  value: design.length ? da.toFixed(1) : '—', sub:`${design.length} builds`, stripe:'var(--design)' },
-    { label:'Overall avg',    value: all.length    ? oa.toFixed(1) : '—', sub:`${all.length} builds`,    stripe:'linear-gradient(90deg,var(--copy),var(--design))' },
-    { label:'Perfect scores', value: all.filter(r=>r.score===100).length, sub:'100% builds',             stripe:'var(--green)' },
-    { label:'Designers',      value: new Set(all.map(r=>r.designer)).size,sub:'active this period',      stripe:'var(--brand)' },
-    { label:'Months tracked', value: new Set(all.map(r=>r.month)).size,   sub:'in view',                 stripe:'var(--border2)' },
+    { label:'Copy QA avg',    value: copyScores.length   ? ca.toFixed(1) : '—', sub:`${copyScores.length} graded`,   stripe:'var(--copy)' },
+    { label:'Design QA avg',  value: designScores.length ? da.toFixed(1) : '—', sub:`${designScores.length} graded`, stripe:'var(--design)' },
+    { label:'Combined avg',   value: (copyScores.length && designScores.length) ? oa.toFixed(1) : '—', sub:`avg of both QA avgs`, stripe:'linear-gradient(90deg,var(--copy),var(--design))' },
+    { label:'Perfect builds', value: builds.filter(b => b.copyScore===100 && b.designScore===100).length, sub:'100 copy & 100 design', stripe:'var(--green)' },
+    { label:'Designers',      value: uniqueDesigners,    sub:'active this period',      stripe:'var(--brand)' },
+    { label:'Months tracked', value: new Set(builds.map(b => b.month)).size, sub:'in view', stripe:'var(--border2)' },
   ];
+
   el.innerHTML = cards.map(c => `
     <div class="sc">
       <div class="sc-stripe" style="background:${c.stripe}"></div>
@@ -634,16 +736,28 @@ function renderStats(all, copy, design) {
     </div>`).join('');
 }
 
-function renderDesignerList(elId, data, color) {
+// ── DESIGNER LISTS ────────────────────────────────────────────
+function renderDesignerList(elId, builds, scoreKey) {
   const el = document.getElementById(elId);
-  if (!data.length) { el.innerHTML = '<div class="empty">No data.</div>'; return; }
+  const color = scoreKey === 'copy' ? 'var(--copy)' : 'var(--design)';
+  const rows_with_score = builds.filter(b => b[scoreKey + 'Score'] !== null);
+
+  if (!rows_with_score.length) { el.innerHTML = '<div class="empty">No data.</div>'; return; }
+
   const map = {};
-  data.forEach(r => { if (!map[r.designer]) map[r.designer] = []; map[r.designer].push(r.score); });
-  const rows = Object.entries(map).map(([d, s]) => ({ name: d, builds: s.length, avg: avg(s) })).sort((a,b) => b.avg - a.avg);
-  const maxAvg = Math.max(...rows.map(r=>r.avg));
+  rows_with_score.forEach(b => {
+    if (!map[b.designer]) map[b.designer] = [];
+    map[b.designer].push(b[scoreKey + 'Score']);
+  });
+
+  const rows = Object.entries(map)
+    .map(([d, scores]) => ({ name: d, builds: scores.length, avg: avg(scores) }))
+    .sort((a,b) => b.avg - a.avg);
+  const maxAvg = Math.max(...rows.map(r => r.avg));
+
   el.innerHTML = `
     <div class="dl-hdr"><div>Designer</div><div style="text-align:center">Builds</div><div>Avg score</div><div></div></div>` +
-    rows.map((r,i) => `
+    rows.map((r, i) => `
       <div class="dl-row">
         <div class="dl-name">${i===0?'🥇 ':''}${r.name}</div>
         <div class="dl-builds">${r.builds}</div>
@@ -652,78 +766,96 @@ function renderDesignerList(elId, data, color) {
       </div>`).join('');
 }
 
-function renderMonthChart(copy, design) {
+// ── MONTH CHART ───────────────────────────────────────────────
+function renderMonthChart(builds) {
   const el = document.getElementById('month-chart');
-  const months = [...new Set([...copy, ...design].map(r=>r.month))].sort((a,b)=>a-b);
+  const months = [...new Set(builds.map(b => b.month))].sort((a,b) => a-b);
   if (!months.length) { el.innerHTML = '<div class="empty">No data.</div>'; return; }
-  const maxB = Math.max(...months.map(m => copy.filter(r=>r.month===m).length + design.filter(r=>r.month===m).length), 1);
+
+  const maxB = Math.max(...months.map(m => builds.filter(b => b.month===m).length), 1);
+
   el.innerHTML = months.map(m => {
-    const c = copy.filter(r=>r.month===m).length, d = design.filter(r=>r.month===m).length;
-    const maxH = 80, cH = Math.max(c/maxB*maxH, c>0?4:0), dH = Math.max(d/maxB*maxH, d>0?4:0);
+    const mBuilds = builds.filter(b => b.month === m);
+    const total = mBuilds.length;
+    const maxH = 80, h = Math.max(total/maxB*maxH, total>0?4:0);
+    const copyAvg   = avg(mBuilds.filter(b=>b.copyScore!==null).map(b=>b.copyScore));
+    const designAvg = avg(mBuilds.filter(b=>b.designScore!==null).map(b=>b.designScore));
     return `
       <div class="mc-col">
-        <div class="mc-nums"><span style="color:var(--copy)">${c}</span><span style="color:var(--design)">${d}</span></div>
+        <div class="mc-nums">
+          <span style="color:var(--copy)">${copyAvg > 0 ? copyAvg.toFixed(1) : '—'}</span>
+          <span style="color:var(--design)">${designAvg > 0 ? designAvg.toFixed(1) : '—'}</span>
+        </div>
         <div class="mc-bars">
-          <div class="mc-bar" style="height:${cH}px;background:var(--copy)" title="Copy QA: ${c}"></div>
-          <div class="mc-bar" style="height:${dH}px;background:var(--design)" title="Design QA: ${d}"></div>
+          <div class="mc-bar" style="height:${h}px;background:linear-gradient(180deg,var(--copy),var(--design))" title="${total} builds"></div>
         </div>
         <div class="mc-name">${MN[m]}</div>
-        <div class="mc-total">${c+d} total</div>
+        <div class="mc-total">${total} builds</div>
       </div>`;
   }).join('');
 }
 
-function renderTable(filtered) {
-  if (!filtered) filtered = applyFilters(ALL_DATA, getFilters());
-  const data = tableTab === 'all' ? filtered : filtered.filter(r => r.type === tableTab);
-  const sorted = [...data].sort((a,b) => b.date.localeCompare(a.date));
-  document.getElementById('table-count').textContent = `${sorted.length} entries`;
+// ── TABLE ─────────────────────────────────────────────────────
+function renderTable(builds) {
+  const sorted = [...builds].sort((a,b) => b.date.localeCompare(a.date));
+  document.getElementById('table-count').textContent = `${sorted.length} builds`;
+
   const tbody = document.getElementById('table-body');
-  if (!sorted.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">No records match your filters.</td></tr>`; return; }
-  tbody.innerHTML = sorted.map(r => `
-    <tr>
-      <td style="color:var(--text3);white-space:nowrap">${r.date}</td>
-      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.account}">${r.account}</td>
-      <td style="white-space:nowrap">${r.designer}</td>
-      <td><span class="type-chip ${r.type==='copy'?'chip-copy':'chip-design'}">${r.type==='copy'?'Copy':'Design'}</span></td>
-      <td><span class="score-chip" style="${scoreChipStyle(r.score)}">${r.score}</span></td>
-    </tr>`).join('');
+  if (!sorted.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">No builds match your filters.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(b => {
+    const copyChip   = b.copyScore   !== null ? `<span class="score-chip" style="${chipStyle(b.copyScore)}">${b.copyScore}</span>`   : `<span style="color:var(--text3);font-size:12px">—</span>`;
+    const designChip = b.designScore !== null ? `<span class="score-chip" style="${chipStyle(b.designScore)}">${b.designScore}</span>` : `<span style="color:var(--text3);font-size:12px">—</span>`;
+    return `<tr>
+      <td style="color:var(--text3);white-space:nowrap">${b.date}</td>
+      <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${b.account}">${b.account}</td>
+      <td style="white-space:nowrap">${b.designer}</td>
+      <td>${copyChip}</td>
+      <td>${designChip}</td>
+    </tr>`;
+  }).join('');
 }
 
-// BONUS
+// ── BONUS TRACKER ─────────────────────────────────────────────
 const EXEMPT_DESIGNERS = ['Elizabeth Mell', 'Daniela Nava'];
 const MIN_BUILDS = 7, MIN_AVG = 95;
 
 function renderBonus() {
   const mv = document.getElementById('bonus-month').value;
   const mf = mv === 'all' ? null : parseInt(mv);
-  const data   = ALL_DATA.filter(r => !mf || r.month === mf);
-  const copy   = data.filter(r => r.type === 'copy');
-  const design = data.filter(r => r.type === 'design');
-  const designers = [...new Set(data.map(r => r.designer))].sort();
+  const builds = mf ? BUILDS.filter(b => b.month === mf) : BUILDS;
+
+  const designers = [...new Set(builds.map(b => b.designer))].sort();
 
   const results = designers.map(d => {
-    const cr = copy.filter(r=>r.designer===d), dr = design.filter(r=>r.designer===d);
-    const cb = cr.length, db = dr.length, tb = Math.max(cb, db);
-    const ca = cb ? avg(cr.map(r=>r.score)) : null;
-    const da = db ? avg(dr.map(r=>r.score)) : null;
-    const comb = (ca !== null && da !== null) ? (ca+da)/2 : (ca ?? da);
-    const exempt = EXEMPT_DESIGNERS.includes(d);
-    const mbuilds = tb >= MIN_BUILDS, mscore = comb !== null && comb >= MIN_AVG, both = ca!==null && da!==null;
+    const dBuilds = builds.filter(b => b.designer === d);
+    const copyScores   = dBuilds.filter(b => b.copyScore   !== null).map(b => b.copyScore);
+    const designScores = dBuilds.filter(b => b.designScore !== null).map(b => b.designScore);
+    const totalBuilds  = dBuilds.length;
+    const ca = copyScores.length   ? avg(copyScores)   : null;
+    const da = designScores.length ? avg(designScores) : null;
+    const comb = (ca !== null && da !== null) ? (ca + da) / 2 : (ca ?? da);
+    const exempt   = EXEMPT_DESIGNERS.includes(d);
+    const mbuilds  = totalBuilds >= MIN_BUILDS;
+    const mscore   = comb !== null && comb >= MIN_AVG;
+    const hasBoth  = ca !== null && da !== null;
     let status;
-    if (exempt)              status = 'exempt';
-    else if (!both)          status = 'not-qualified';
-    else if (mbuilds&&mscore)status = 'eligible';
-    else                     status = 'ineligible';
-    return { d, tb, ca, da, comb, mbuilds, mscore, both, exempt, status };
+    if (exempt)               status = 'exempt';
+    else if (!hasBoth)        status = 'not-qualified';
+    else if (mbuilds && mscore) status = 'eligible';
+    else                      status = 'ineligible';
+    return { d, totalBuilds, ca, da, comb, mbuilds, mscore, hasBoth, exempt, status };
   });
 
   const order = { eligible:0, ineligible:1, 'not-qualified':2, exempt:3 };
   results.sort((a,b) => order[a.status]-order[b.status] || a.d.localeCompare(b.d));
 
-  const el = results.filter(r=>r.status==='eligible').length;
-  const il = results.filter(r=>r.status==='ineligible').length;
-  const xl = results.filter(r=>r.status==='exempt').length;
+  const el = results.filter(r => r.status==='eligible').length;
+  const il = results.filter(r => r.status==='ineligible').length;
+  const xl = results.filter(r => r.status==='exempt').length;
 
   document.getElementById('bonus-summary-bar').innerHTML = `
     <div class="bstat">🏅 <strong>${el}</strong> earn the bonus</div>
@@ -744,7 +876,8 @@ function renderBonus() {
     else if (r.status==='ineligible')   { badgeCls='bb-ineligible';    badgeTxt='✗ Not eligible'; }
     else if (r.status==='exempt')       { badgeCls='bb-exempt';        badgeTxt='Exempt'; }
     else                                { badgeCls='bb-not-qualified'; badgeTxt='Incomplete data'; }
-    const miss = !r.both && !r.exempt ? `<div class="bmissing">⚠ Missing ${r.ca===null?'Copy':'Design'} QA data for this period</div>` : '';
+    const miss = !r.hasBoth && !r.exempt
+      ? `<div class="bmissing">⚠ Missing ${r.ca===null?'Copy':'Design'} QA data for this period</div>` : '';
     return `
       <div class="bcard ${r.status}">
         <div class="bcard-stripe"></div>
@@ -753,7 +886,7 @@ function renderBonus() {
           <span class="bcard-badge ${badgeCls}">${badgeTxt}</span>
         </div>
         <div class="brows">
-          <div class="brow"><span class="brow-label">Builds</span><span class="brow-val ${bc}">${r.tb}${!r.mbuilds&&!r.exempt?' <span style="font-size:10px;font-weight:400;color:var(--text3)">(need '+MIN_BUILDS+')</span>':''}</span></div>
+          <div class="brow"><span class="brow-label">Builds</span><span class="brow-val ${bc}">${r.totalBuilds}${!r.mbuilds&&!r.exempt?' <span style="font-size:10px;font-weight:400;color:var(--text3)">(need '+MIN_BUILDS+')</span>':''}</span></div>
           <div class="brow"><span class="brow-label">Copy QA avg</span><span class="brow-val ${r.ca!==null?(r.ca>=MIN_AVG?'pass':'warn'):'neutral'}">${cv}</span></div>
           <div class="brow"><span class="brow-label">Design QA avg</span><span class="brow-val ${r.da!==null?(r.da>=MIN_AVG?'pass':'warn'):'neutral'}">${dv}</span></div>
           <div class="bdiv"></div>
@@ -767,8 +900,10 @@ function renderBonus() {
   }).join('');
 }
 
+// ── EVENTS ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  ['f-designer','f-month','f-type','f-score'].forEach(id => document.getElementById(id).addEventListener('change', renderAll));
+  ['f-designer','f-month','f-score'].forEach(id =>
+    document.getElementById(id).addEventListener('change', renderAll));
   document.getElementById('bonus-month').addEventListener('change', renderBonus);
   loadData();
 });
