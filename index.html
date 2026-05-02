@@ -72,7 +72,7 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
 /* LAYOUT */
 .layout { display: flex; min-height: calc(100vh - 56px); }
 .sidebar { width: 64px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); }
-.main { flex: 1; padding: 28px 32px 64px; max-width: 1320px; }
+.main { flex: 1; padding: 28px 32px 64px; max-width: 1320px; margin: 0 auto; min-width: 0; }
 
 /* PAGE HEADER */
 .page-header { margin-bottom: 24px; }
@@ -381,18 +381,6 @@ tbody tr:hover td { background: var(--bg); }
         </div>
       </div>
 
-      <div class="sh">Monthly volume</div>
-      <div class="panel">
-        <div class="ph">
-          <div class="pt">Builds per month</div>
-          <div class="mc-legend">
-            <div class="mc-li"><div class="mc-dot" style="background:var(--copy)"></div>Copy QA</div>
-            <div class="mc-li"><div class="mc-dot" style="background:var(--design)"></div>Design QA</div>
-          </div>
-        </div>
-        <div class="pb"><div class="mc" id="month-chart"></div></div>
-      </div>
-
       <div class="sh">Build log</div>
       <div class="panel">
         <div class="ph">
@@ -400,7 +388,7 @@ tbody tr:hover td { background: var(--bg); }
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Business</th><th>Designer</th><th>Copy QA</th><th>Design QA</th></tr></thead>
+            <thead><tr><th>Date</th><th>Business</th><th>Designer</th><th>Copy QA</th><th>Design QA</th><th>Avg</th></tr></thead>
             <tbody id="table-body"></tbody>
           </table>
         </div>
@@ -428,8 +416,8 @@ tbody tr:hover td { background: var(--bg); }
 // ============================================================
 //  ⚙️  CONFIGURATION — paste your Web App URLs here
 // ============================================================
-const COPY_QA_URL   = 'https://script.google.com/macros/s/AKfycbwS24Osis8YPSpBtYbl1HOo6BopEF9-KKni5oOFid0BGuAxpXazYdrJYHg2OBvKjP45jg/exec';
-const DESIGN_QA_URL = 'https://script.google.com/macros/s/AKfycbyPiVxBgM_rrDbY9ZApigutMA0li9fzyefarva2NFqxTBlJurMuqGXF5XbQRxP1QpfV2A/exec';
+const COPY_QA_URL   = 'PASTE_COPY_QA_APPS_SCRIPT_URL_HERE';
+const DESIGN_QA_URL = 'PASTE_DESIGN_QA_APPS_SCRIPT_URL_HERE';
 // ============================================================
 
 // Canonical designer name map — normalizes accent/spelling variants from either sheet
@@ -809,12 +797,15 @@ function renderTable(builds) {
   tbody.innerHTML = sorted.map(b => {
     const copyChip   = b.copyScore   !== null ? `<span class="score-chip" style="${chipStyle(b.copyScore)}">${b.copyScore}</span>`   : `<span style="color:var(--text3);font-size:12px">—</span>`;
     const designChip = b.designScore !== null ? `<span class="score-chip" style="${chipStyle(b.designScore)}">${b.designScore}</span>` : `<span style="color:var(--text3);font-size:12px">—</span>`;
+    const as = avgScore(b);
+    const avgChip = as !== null ? `<span class="score-chip" style="${chipStyle(as)}">${as % 1 === 0 ? as : as.toFixed(1)}</span>` : `<span style="color:var(--text3);font-size:12px">—</span>`;
     return `<tr>
       <td style="color:var(--text3);white-space:nowrap">${b.date}</td>
       <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${b.account}">${b.account}</td>
       <td style="white-space:nowrap">${b.designer}</td>
       <td>${copyChip}</td>
       <td>${designChip}</td>
+      <td>${avgChip}</td>
     </tr>`;
   }).join('');
 }
