@@ -416,8 +416,8 @@ tbody tr:hover td { background: var(--bg); }
 // ============================================================
 //  ⚙️  CONFIGURATION — paste your Web App URLs here
 // ============================================================
-const COPY_QA_URL   = 'https://script.google.com/macros/s/AKfycbwS24Osis8YPSpBtYbl1HOo6BopEF9-KKni5oOFid0BGuAxpXazYdrJYHg2OBvKjP45jg/exec';
-const DESIGN_QA_URL = 'https://script.google.com/macros/s/AKfycbyPiVxBgM_rrDbY9ZApigutMA0li9fzyefarva2NFqxTBlJurMuqGXF5XbQRxP1QpfV2A/exec';
+const COPY_QA_URL   = 'PASTE_COPY_QA_APPS_SCRIPT_URL_HERE';
+const DESIGN_QA_URL = 'PASTE_DESIGN_QA_APPS_SCRIPT_URL_HERE';
 // ============================================================
 
 // Canonical designer name map — normalizes accent/spelling variants from either sheet
@@ -642,7 +642,6 @@ function renderAll() {
   renderStats(filtered);
   renderDesignerList('copy-list',   filtered, 'copy');
   renderDesignerList('design-list', filtered, 'design');
-  renderMonthChart(filtered);
   renderTable(filtered);
   renderBonus();
 }
@@ -755,33 +754,8 @@ function renderDesignerList(elId, builds, scoreKey) {
 }
 
 // ── MONTH CHART ───────────────────────────────────────────────
-function renderMonthChart(builds) {
-  const el = document.getElementById('month-chart');
-  const months = [...new Set(builds.map(b => b.month))].sort((a,b) => a-b);
-  if (!months.length) { el.innerHTML = '<div class="empty">No data.</div>'; return; }
 
-  const maxB = Math.max(...months.map(m => builds.filter(b => b.month===m).length), 1);
 
-  el.innerHTML = months.map(m => {
-    const mBuilds = builds.filter(b => b.month === m);
-    const total = mBuilds.length;
-    const maxH = 80, h = Math.max(total/maxB*maxH, total>0?4:0);
-    const copyAvg   = avg(mBuilds.filter(b=>b.copyScore!==null).map(b=>b.copyScore));
-    const designAvg = avg(mBuilds.filter(b=>b.designScore!==null).map(b=>b.designScore));
-    return `
-      <div class="mc-col">
-        <div class="mc-nums">
-          <span style="color:var(--copy)">${copyAvg > 0 ? copyAvg.toFixed(1) : '—'}</span>
-          <span style="color:var(--design)">${designAvg > 0 ? designAvg.toFixed(1) : '—'}</span>
-        </div>
-        <div class="mc-bars">
-          <div class="mc-bar" style="height:${h}px;background:linear-gradient(180deg,var(--copy),var(--design))" title="${total} builds"></div>
-        </div>
-        <div class="mc-name">${MN[m]}</div>
-        <div class="mc-total">${total} builds</div>
-      </div>`;
-  }).join('');
-}
 
 // ── TABLE ─────────────────────────────────────────────────────
 function renderTable(builds) {
