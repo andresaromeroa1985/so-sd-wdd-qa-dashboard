@@ -361,7 +361,9 @@ const NAME_MAP = {
 };
 const MN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-let BUILDS = [];
+let BUILDS = [];       // merged, for build log table only
+let COPY_ROWS = [];    // raw copy rows, for accurate averages
+let DESIGN_ROWS = [];  // raw design rows, for accurate averages
 let currentWinners = [];
 
 // ── HELPERS ───────────────────────────────────────────────────
@@ -447,11 +449,11 @@ async function loadData(){
     const [cr,dr]=await Promise.all([jsonp(COPY_QA_URL),jsonp(DESIGN_QA_URL)]);
     if(cr.status!=='ok') throw new Error('Copy QA: '+cr.message);
     if(dr.status!=='ok') throw new Error('Design QA: '+dr.message);
-    const copyRows  =cr.data.map(r=>({...r,designer:normName(r.designer)}));
-    const designRows=dr.data.map(r=>({...r,designer:normName(r.designer)}));
-    BUILDS=mergeBuilds(copyRows,designRows);
-    // populate designer filter
-    const designers=[...new Set(BUILDS.map(b=>b.designer))].sort();
+    COPY_ROWS  =cr.data.map(r=>({...r,designer:normName(r.designer)}));
+    DESIGN_ROWS=dr.data.map(r=>({...r,designer:normName(r.designer)}));
+    BUILDS=mergeBuilds(COPY_ROWS,DESIGN_ROWS);
+    // populate designer filter from union of all designer names
+    const designers=[...new Set([...COPY_ROWS,...DESIGN_ROWS].map(r=>r.designer))].sort();
     const sel=document.getElementById('f-designer');
     const cur=sel.value;
     sel.innerHTML='<option value="all">All designers</option>';
@@ -498,72 +500,82 @@ function applyFilters(builds,f){
     return true;
   });
 }
+function filterRawRows(rows, f){
+  return rows.filter(r=>{
+    if(f.designer!=='all'&&r.designer!==f.designer) return false;
+    if(f.month!=='all'&&r.month!==parseInt(f.month)) return false;
+    return true;
+  });
+}
 function resetFilters(){ ['f-designer','f-month','f-type','f-score'].forEach(id=>document.getElementById(id).value='all'); renderAll(); }
 
 // ── RENDER ALL ────────────────────────────────────────────────
 function renderAll(){
   const f=getFilters();
   const filtered=applyFilters(BUILDS,f);
+  const filtCopy=filterRawRows(COPY_ROWS,f);
+  const filtDesign=filterRawRows(DESIGN_ROWS,f);
   document.getElementById('filter-info').innerHTML=`<span>${filtered.length}</span> build${filtered.length!==1?'s':''}`;
-  renderInsights(filtered);
-  renderStats(filtered);
-  renderDesignerList('copy-list',filtered,'copy');
-  renderDesignerList('design-list',filtered,'design');
+  renderInsights(filtCopy,filtDesign,filtered);
+  renderStats(filtCopy,filtDesign);
+  renderDesignerList('copy-list',filtCopy);
+  renderDesignerList('design-list',filtDesign);
   renderTable(filtered);
   renderBonus();
 }
 
 // ── INSIGHTS ─────────────────────────────────────────────────
-function renderInsights(builds){
+function renderInsights(copyRows,designRows,merged){
   const el=document.getElementById('insight-grid');
-  if(!builds.length){ el.innerHTML='<div class="empty">No data matches your filters.</div>'; return; }
-  const perfect=builds.filter(b=>b.copyScore===100&&b.designScore===100).length;
-  const below90=builds.filter(b=>{ const s=avgScore(b); return s!==null&&s<90; }).length;
-  function topD(key){ const m={}; builds.forEach(b=>{ const s=b[key]; if(s===null)return; if(!m[b.designer])m[b.designer]=[]; m[b.designer].push(s); }); let best={name:'',avg:0}; Object.entries(m).forEach(([d,sc])=>{ const a=avg(sc); if(a>best.avg)best={name:d,avg:a}; }); return best; }
-  const tc=topD('copyScore'), td=topD('designScore');
+  if(!copyRows.length&&!designRows.length){ el.innerHTML='<div class="empty">No data matches your filters.</div>'; return; }
+  const perfect=merged.filter(b=>b.copyScore===100&&b.designScore===100).length;
+  const belowCopy=copyRows.filter(r=>r.score<90).length;
+  const belowDesign=designRows.filter(r=>r.score<90).length;
+  const below90=belowCopy+belowDesign;
+  const total=copyRows.length+designRows.length;
+  function topD(rows){ const m={}; rows.forEach(r=>{ if(!m[r.designer])m[r.designer]=[]; m[r.designer].push(r.score); }); let best={name:'',avg:0}; Object.entries(m).forEach(([d,sc])=>{ const a=avg(sc); if(a>best.avg)best={name:d,avg:a}; }); return best; }
+  const tc=topD(copyRows), td=topD(designRows);
   const cards=[
-    {icon:'✅',bg:'var(--lime-dim)',   c:'var(--lime-t)',   label:'Perfect builds',value:perfect,          sub:'both Copy & Design = 100'},
-    {icon:'⚠️',bg:'var(--red-dim)',   c:'var(--red-t)',    label:'Below 90',     value:below90,           sub:`${((below90/builds.length)*100).toFixed(0)}% of builds`},
-    {icon:'📝',bg:'var(--copy-dim)',  c:'var(--copy-t)',   label:'Top Copy QA',  value:tc.name||'—',      sub:tc.name?`avg ${tc.avg.toFixed(1)}`:''},
-    {icon:'🎨',bg:'var(--design-dim)',c:'var(--design-t)', label:'Top Design QA',value:td.name||'—',      sub:td.name?`avg ${td.avg.toFixed(1)}`:''},
-    {icon:'📦',bg:'var(--blue-dim)',  c:'var(--copy-t)',   label:'Total builds', value:builds.length,     sub:`${builds.filter(b=>b.copyScore!==null).length} copy · ${builds.filter(b=>b.designScore!==null).length} design`},
+    {icon:'✅',bg:'var(--lime-dim)',   c:'var(--lime-t)',   label:'Perfect builds',value:perfect,     sub:'both Copy & Design = 100'},
+    {icon:'⚠️',bg:'var(--red-dim)',   c:'var(--red-t)',    label:'Below 90',     value:below90,      sub:total?`${((below90/total)*100).toFixed(0)}% of graded builds`:''},
+    {icon:'📝',bg:'var(--copy-dim)',  c:'var(--copy-t)',   label:'Top Copy QA',  value:tc.name||'—', sub:tc.name?`avg ${tc.avg.toFixed(1)}`:''},
+    {icon:'🎨',bg:'var(--design-dim)',c:'var(--design-t)', label:'Top Design QA',value:td.name||'—', sub:td.name?`avg ${td.avg.toFixed(1)}`:''},
+    {icon:'📦',bg:'var(--blue-dim)',  c:'var(--copy-t)',   label:'Total builds', value:merged.length, sub:`${copyRows.length} copy · ${designRows.length} design`},
   ];
   el.innerHTML=cards.map(c=>`<div class="ic"><div class="ic-icon" style="background:${c.bg}">${c.icon}</div><div><div class="ic-label">${c.label}</div><div class="ic-value" style="color:${c.c}">${c.value}</div><div class="ic-sub">${c.sub}</div></div></div>`).join('');
 }
 
 // ── STATS ─────────────────────────────────────────────────────
-function renderStats(builds){
+function renderStats(copyRows,designRows){
   const el=document.getElementById('stat-grid');
-  if(!builds.length){ el.innerHTML=''; return; }
-  const cs=builds.filter(b=>b.copyScore!==null).map(b=>b.copyScore);
-  const ds=builds.filter(b=>b.designScore!==null).map(b=>b.designScore);
+  if(!copyRows.length&&!designRows.length){ el.innerHTML=''; return; }
+  const cs=copyRows.map(r=>r.score);
+  const ds=designRows.map(r=>r.score);
   const ca=avg(cs),da=avg(ds),oa=(ca+da)/2;
-  const uniqueDesigners=Array.from(new Set(builds.map(b=>b.designer))).length;
-  const uniqueMonths=Array.from(new Set(builds.map(b=>b.month))).length;
-  const perfect=builds.filter(b=>b.copyScore===100&&b.designScore===100).length;
-  // Historic combined avg: per-build avg across all builds that have both scores
-  const bothScores=builds.filter(b=>b.copyScore!==null&&b.designScore!==null).map(b=>(b.copyScore+b.designScore)/2);
-  const historicAvg=bothScores.length?avg(bothScores):null;
+  const uniqueDesigners=Array.from(new Set([...copyRows,...designRows].map(r=>r.designer))).length;
+  const uniqueMonths=Array.from(new Set([...copyRows,...designRows].map(r=>r.month))).length;
+  // Historic combined avg: average per designer per month, then average all of those
+  const allScores=[...cs,...ds];
+  const historicAvg=allScores.length?avg(allScores):null;
   const cards=[
-    {label:'Copy QA avg',          value:cs.length?ca.toFixed(1):'—',              sub:`${cs.length} graded`,           stripe:'var(--copy)'},
-    {label:'Design QA avg',        value:ds.length?da.toFixed(1):'—',              sub:`${ds.length} graded`,           stripe:'var(--design)'},
-    {label:'Combined avg',         value:(cs.length&&ds.length)?oa.toFixed(1):'—', sub:'avg of both QA avgs',           stripe:'linear-gradient(90deg,var(--copy),var(--design))'},
-    {label:'Historic team avg',    value:historicAvg!==null?historicAvg.toFixed(2)+'%':'—', sub:`across all ${bothScores.length} scored builds`, stripe:'linear-gradient(90deg,var(--blue),var(--design))'},
-    {label:'Perfect builds',       value:perfect,                                  sub:'100 copy & design',             stripe:'var(--green)'},
-    {label:'Designers',            value:uniqueDesigners,                          sub:'active this period',            stripe:'var(--blue)'},
-    {label:'Months tracked',       value:uniqueMonths,                             sub:'in view',                       stripe:'var(--brd2)'},
+    {label:'Copy QA avg',       value:cs.length?ca.toFixed(1):'—',              sub:`${cs.length} graded`,          stripe:'var(--copy)'},
+    {label:'Design QA avg',     value:ds.length?da.toFixed(1):'—',              sub:`${ds.length} graded`,          stripe:'var(--design)'},
+    {label:'Combined avg',      value:(cs.length&&ds.length)?oa.toFixed(1):'—', sub:'avg of both QA types',         stripe:'linear-gradient(90deg,var(--copy),var(--design))'},
+    {label:'Historic team avg', value:historicAvg!==null?historicAvg.toFixed(2)+'%':'—', sub:`all ${allScores.length} graded builds`, stripe:'linear-gradient(90deg,var(--blue),var(--design))'},
+    {label:'Designers',         value:uniqueDesigners,                          sub:'active this period',           stripe:'var(--blue)'},
+    {label:'Months tracked',    value:uniqueMonths,                             sub:'in view',                      stripe:'var(--brd2)'},
   ];
   el.innerHTML=cards.map(c=>`<div class="sc"><div class="sc-stripe" style="background:${c.stripe}"></div><div class="sc-label">${c.label}</div><div class="sc-value">${c.value}</div><div class="sc-sub">${c.sub}</div></div>`).join('');
 }
 
 // ── DESIGNER LISTS ────────────────────────────────────────────
-function renderDesignerList(elId,builds,scoreKey){
+function renderDesignerList(elId,rawRows){
   const el=document.getElementById(elId);
-  const color=scoreKey==='copy'?'var(--copy)':'var(--design)';
-  const withScore=builds.filter(b=>b[scoreKey+'Score']!==null);
-  if(!withScore.length){ el.innerHTML='<div class="empty">No data.</div>'; return; }
+  const isCopy=elId==='copy-list';
+  const color=isCopy?'var(--copy)':'var(--design)';
+  if(!rawRows.length){ el.innerHTML='<div class="empty">No data.</div>'; return; }
   const map={};
-  withScore.forEach(b=>{ if(!map[b.designer])map[b.designer]=[]; map[b.designer].push(b[scoreKey+'Score']); });
+  rawRows.forEach(r=>{ if(!map[r.designer])map[r.designer]=[]; map[r.designer].push(r.score); });
   const rows=Object.entries(map).map(([d,sc])=>({name:d,builds:sc.length,avg:avg(sc)})).sort((a,b)=>b.avg-a.avg);
   const maxAvg=Math.max(...rows.map(r=>r.avg));
   el.innerHTML=`<div class="dl-hdr"><div>Designer</div><div style="text-align:center">Builds</div><div>Avg score</div><div></div></div>`+
@@ -589,14 +601,14 @@ function renderTable(builds){
 function renderBonus(){
   const mv=document.getElementById('bonus-month').value;
   const mf=mv==='all'?null:parseInt(mv);
-  const builds=mf?BUILDS.filter(b=>b.month===mf):BUILDS;
-  const designers=[...new Set(builds.map(b=>b.designer))].sort();
+  const copyF=mf?COPY_ROWS.filter(r=>r.month===mf):COPY_ROWS;
+  const designF=mf?DESIGN_ROWS.filter(r=>r.month===mf):DESIGN_ROWS;
+  const designers=[...new Set([...copyF,...designF].map(r=>r.designer))].sort();
 
   const results=designers.map(d=>{
-    const db=builds.filter(b=>b.designer===d);
-    const cs=db.filter(b=>b.copyScore!==null).map(b=>b.copyScore);
-    const ds=db.filter(b=>b.designScore!==null).map(b=>b.designScore);
-    const total=db.length;
+    const cs=copyF.filter(r=>r.designer===d).map(r=>r.score);
+    const ds=designF.filter(r=>r.designer===d).map(r=>r.score);
+    const total=cs.length+ds.length;
     const ca=cs.length?avg(cs):null;
     const da=ds.length?avg(ds):null;
     const comb=(ca!==null&&da!==null)?(ca+da)/2:(ca??da);
