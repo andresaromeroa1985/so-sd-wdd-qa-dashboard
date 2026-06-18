@@ -3,873 +3,662 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WDD QA Dashboard — SpotOn</title>
+<title>SpotOn — WDD QA Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg:           #f4f7fa;
-  --surface:      #ffffff;
-  --border:       #e2e9f3;
-  --border2:      #d0d9e8;
-  --text:         #0a091b;
-  --text2:        #3b4a68;
-  --text3:        #637ca8;
-  --brand:        #2d71e8;
-  --brand-dim:    #eff5ff;
-  --brand-hover:  #1c5dcd;
-  --topbar-bg:    #0d0a2e;
-  --green:        #12b76a;
-  --green-dim:    #ecfdf3;
-  --green-text:   #027a48;
-  --yellow:       #f79009;
-  --yellow-dim:   #fffaeb;
-  --yellow-text:  #b54708;
-  --red:          #d92d20;
-  --red-dim:      #fef3f2;
-  --red-text:     #b42318;
-  --copy:         #2d71e8;
-  --copy-dim:     #eff5ff;
-  --copy-text:    #1c5dcd;
-  --design:       #12b76a;
-  --design-dim:   #ecfdf3;
-  --design-text:  #027a48;
-  --lime:         #3b7c0f;
-  --lime-dim:     #f3fce4;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1769ff;--blue-dim:rgba(23,105,255,0.15);--blue-border:rgba(23,105,255,0.30);
+  --black:#000;--s1:#0d0d0d;--s2:#111111;--s3:#181818;--s4:#1e1e1e;
+  --brd:rgba(255,255,255,0.08);--brd2:rgba(255,255,255,0.13);
+  --tw:#fff;--tp:#a6b0bf;--tg:#6A7586;--td:#3b4a68;
+  --r:8px;--rl:14px;--rx:20px;--f:'Poppins',-apple-system,sans-serif;
+  --green:#16a34a;--green-dim:rgba(22,163,74,0.12);--green-border:rgba(22,163,74,0.25);--green-t:#6ee7b7;
+  --red:#ef4444;--red-dim:rgba(239,68,68,0.10);--red-border:rgba(239,68,68,0.20);--red-t:#fca5a5;
+  --amber:#d97706;--amber-dim:rgba(217,119,6,0.10);--amber-border:rgba(217,119,6,0.25);--amber-t:#fcd34d;
+  --copy:#3b82f6;--copy-dim:rgba(59,130,246,0.12);--copy-t:#93c5fd;
+  --design:#10b981;--design-dim:rgba(16,185,129,0.12);--design-t:#6ee7b7;
+  --lime:#84cc16;--lime-dim:rgba(132,204,22,0.12);--lime-t:#bef264;
 }
+html{scroll-behavior:smooth}
+body{font-family:var(--f);background:var(--black);color:var(--tw);min-height:100vh;font-size:14px}
 
-body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:200;height:56px;background:#0a0a0a;border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 32px;gap:14px}
+.topbar-logo{display:flex;align-items:center;gap:10px}
+.topbar-title{font-size:15px;font-weight:600;color:var(--tw);letter-spacing:.01em}
+.topbar-title span{color:rgba(255,255,255,.35);font-weight:400}
+.topbar-div{width:1px;height:20px;background:var(--brd2)}
+.pill{padding:3px 10px;border-radius:96px;font-size:11px;font-weight:500}
+.pill-copy{background:var(--copy-dim);color:var(--copy-t)}
+.pill-design{background:var(--design-dim);color:var(--design-t)}
+.topbar-spacer{flex:1}
+.topbar-nav{display:flex;gap:4px}
+.nav-btn{background:transparent;border:none;color:var(--tg);font-family:var(--f);font-size:12px;font-weight:500;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s}
+.nav-btn:hover{background:rgba(255,255,255,.06);color:var(--tw)}
+.last-sync{font-size:11px;color:var(--tg)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--tg);flex-shrink:0;transition:background .3s}
+.status-dot.ok{background:var(--green)}
+.status-dot.err{background:var(--red)}
+.refresh-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid var(--brd2);border-radius:96px;color:var(--tp);font-family:var(--f);font-size:12px;font-weight:500;padding:5px 14px;cursor:pointer;transition:all .15s}
+.refresh-btn:hover{background:rgba(255,255,255,.12);color:var(--tw)}
+.refresh-btn svg{width:12px;height:12px}
+.refresh-btn.spinning svg{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* TOPBAR */
-.topbar {
-  position: sticky; top: 0; z-index: 200;
-  height: 56px; background: var(--topbar-bg);
-  display: flex; align-items: center; padding: 0 32px; gap: 14px;
-}
-.topbar-logo { display: flex; align-items: center; gap: 10px; }
-.spoton-icon { width: 26px; height: 26px; flex-shrink: 0; }
-.topbar-title { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: .01em; }
-.topbar-title span { color: rgba(255,255,255,.4); font-weight: 400; }
-.topbar-div { width: 1px; height: 20px; background: rgba(255,255,255,.15); }
-.topbar-spacer { flex: 1; }
-.pill { padding: 3px 10px; border-radius: 96px; font-size: 11px; font-weight: 500; }
-.pill-copy   { background: rgba(45,113,232,.3);  color: #a5c3f9; }
-.pill-design { background: rgba(18,183,106,.25); color: #6ce9a6; }
-.refresh-btn {
-  display: flex; align-items: center; gap: 6px;
-  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
-  border-radius: 96px; color: rgba(255,255,255,.75);
-  font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 500;
-  padding: 6px 16px; cursor: pointer; transition: all .15s;
-}
-.refresh-btn:hover { background: rgba(255,255,255,.18); color: #fff; }
-.refresh-btn svg { width: 13px; height: 13px; }
-.refresh-btn.spinning svg { animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.last-updated { font-size: 11px; color: rgba(255,255,255,.38); }
+/* ── LAYOUT ── */
+.main{max-width:1100px;margin:0 auto;padding:32px 32px 80px}
 
-/* LAYOUT */
-.layout { display: flex; min-height: calc(100vh - 56px); }
-.sidebar { width: 64px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); }
-.main { flex: 1; padding: 28px 32px 64px; max-width: 1320px; margin: 0 auto; min-width: 0; }
+/* ── LOADING ── */
+.loading-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;color:var(--tg)}
+.spinner{width:28px;height:28px;border:2px solid var(--brd2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
 
-/* PAGE HEADER */
-.page-header { margin-bottom: 24px; }
-.breadcrumb { font-size: 12px; color: var(--brand); font-weight: 500; margin-bottom: 3px; }
-.page-title { font-size: 20px; font-weight: 600; }
-.page-sub { font-size: 13px; color: var(--text3); margin-top: 2px; }
+/* ── SECTION HEADING ── */
+.sh{font-size:11px;font-weight:600;color:var(--tg);text-transform:uppercase;letter-spacing:.09em;margin:40px 0 16px;display:flex;align-items:center;gap:12px}
+.sh::after{content:'';flex:1;height:1px;background:var(--brd)}
+.sh:first-child{margin-top:0}
 
-/* SECTION HEADING */
-.sh {
-  font-size: 11px; font-weight: 600; color: var(--text3);
-  text-transform: uppercase; letter-spacing: .08em;
-  margin: 28px 0 12px;
-  display: flex; align-items: center; gap: 10px;
-}
-.sh::after { content:''; flex:1; height:1px; background: var(--border); }
+/* ── PAGE HEADER ── */
+.page-header{margin-bottom:32px}
+.ey{font-size:12px;font-weight:500;letter-spacing:.10em;text-transform:uppercase;color:var(--blue);margin-bottom:8px}
+.pt{font-size:clamp(22px,3vw,32px);font-weight:600;letter-spacing:-.02em;line-height:1.15;margin-bottom:6px}
+.ps{font-size:13px;color:var(--tp)}
 
-/* LOADING / ERROR */
-.loading-overlay {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 60vh; gap: 16px; color: var(--text3);
-}
-.spinner {
-  width: 32px; height: 32px; border: 2px solid var(--border);
-  border-top-color: var(--brand); border-radius: 50%;
-  animation: spin .7s linear infinite;
-}
-.error-box { background: var(--red-dim); border: 1px solid #fda29b; border-radius: 12px; padding: 14px 18px; font-size: 13px; color: var(--red-text); margin-bottom: 20px; }
-.setup-warn { background: var(--yellow-dim); border: 1px solid #fec84b; border-radius: 12px; padding: 14px 18px; font-size: 13px; color: var(--yellow-text); margin-bottom: 20px; display: none; }
-.setup-warn code { background: rgba(0,0,0,.07); padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+/* ── ERROR / STATUS ── */
+.err-box{background:var(--red-dim);border:1px solid var(--red-border);border-radius:var(--r);padding:12px 16px;font-size:13px;color:var(--red-t);margin-bottom:20px;display:none}
 
-/* FILTERS */
-.filters-bar {
-  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 16px; padding: 16px 20px; margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(10,9,27,.05);
-}
-.fg { display: flex; flex-direction: column; gap: 5px; min-width: 148px; }
-.fl { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; }
-.filter-select {
-  background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 8px; color: var(--text);
-  font-family: 'Poppins', sans-serif; font-size: 13px;
-  padding: 8px 12px; outline: none; cursor: pointer;
-  transition: border-color .15s, box-shadow .15s; height: 40px;
-}
-.filter-select:hover { border-color: var(--brand); }
-.filter-select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(45,113,232,.12); }
-.fsep { width: 1px; height: 40px; background: var(--border); align-self: flex-end; margin: 0 2px; }
-.btn-ghost {
-  background: transparent; border: 1px solid var(--border2); border-radius: 96px;
-  color: var(--text3); font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 500;
-  padding: 0 16px; height: 40px; cursor: pointer; transition: all .15s; align-self: flex-end;
-}
-.btn-ghost:hover { border-color: var(--brand); color: var(--brand); }
-.finfo { margin-left: auto; font-size: 12px; color: var(--text3); align-self: flex-end; }
-.finfo span { color: var(--text); font-weight: 600; }
+/* ── FILTERS ── */
+.filters-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;background:var(--s3);border:1px solid var(--brd);border-radius:var(--rl);padding:16px 20px;margin-bottom:24px}
+.fg{display:flex;flex-direction:column;gap:5px;min-width:140px}
+.fl{font-size:11px;font-weight:500;color:var(--tg);text-transform:uppercase;letter-spacing:.07em}
+.fsel{background:var(--s4);border:1px solid var(--brd2);border-radius:var(--r);color:var(--tw);font-family:var(--f);font-size:13px;padding:8px 12px;outline:none;cursor:pointer;transition:border-color .15s;height:38px}
+.fsel:hover,.fsel:focus{border-color:var(--blue)}
+.fsep{width:1px;height:38px;background:var(--brd);align-self:flex-end}
+.btn-ghost{background:transparent;border:1px solid var(--brd2);border-radius:96px;color:var(--tg);font-family:var(--f);font-size:12px;font-weight:500;padding:0 16px;height:38px;cursor:pointer;transition:all .15s;align-self:flex-end}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+.finfo{margin-left:auto;font-size:12px;color:var(--tg);align-self:flex-end}
+.finfo span{color:var(--tw);font-weight:600}
 
-/* INSIGHT CARDS */
-.ig { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
-.ic {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-  padding: 16px 20px; display: flex; align-items: flex-start; gap: 14px;
-  box-shadow: 0 1px 3px rgba(10,9,27,.05); transition: box-shadow .2s;
-}
-.ic:hover { box-shadow: 0 4px 12px rgba(10,9,27,.08); }
-.ic-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-.ic-label { font-size: 11px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
-.ic-value { font-size: 22px; font-weight: 700; line-height: 1.1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ic-sub { font-size: 11px; color: var(--text3); }
+/* ── INSIGHT CARDS ── */
+.ig{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px}
+.ic{background:var(--s3);border:1px solid var(--brd);border-radius:var(--rl);padding:16px 18px;display:flex;align-items:flex-start;gap:12px;transition:border-color .2s}
+.ic:hover{border-color:var(--brd2)}
+.ic-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.ic-label{font-size:11px;color:var(--tg);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.ic-value{font-size:20px;font-weight:700;line-height:1.1;margin-bottom:2px}
+.ic-sub{font-size:11px;color:var(--tg)}
 
-/* STAT CARDS */
-.sg { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 12px; }
-.sc {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-  padding: 16px 20px; position: relative; overflow: hidden;
-  box-shadow: 0 1px 3px rgba(10,9,27,.05);
-}
-.sc-stripe { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
-.sc-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; font-weight: 500; margin-bottom: 8px; }
-.sc-value { font-size: 28px; font-weight: 700; line-height: 1; }
-.sc-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+/* ── STAT CARDS ── */
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px}
+.sc{background:var(--s3);border:1px solid var(--brd);border-radius:var(--rl);padding:16px 18px;position:relative;overflow:hidden}
+.sc-stripe{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--rl) var(--rl) 0 0}
+.sc-label{font-size:11px;color:var(--tg);text-transform:uppercase;letter-spacing:.07em;font-weight:500;margin-bottom:8px}
+.sc-value{font-size:26px;font-weight:700;line-height:1}
+.sc-sub{font-size:11px;color:var(--tg);margin-top:4px}
 
-/* TWO COL */
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-@media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+/* ── TWO COL ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:800px){.two-col{grid-template-columns:1fr}}
 
-/* PANEL */
-.panel {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 24px; overflow: hidden;
-  box-shadow: 0 1px 3px rgba(10,9,27,.05);
-}
-.ph {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 24px 14px; border-bottom: 1px solid var(--border);
-}
-.pt { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-.ptn { font-size: 12px; color: var(--text3); font-weight: 400; }
-.pb { padding: 16px 24px; }
+/* ── PANEL ── */
+.panel{background:var(--s3);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--brd)}
+.panel-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.panel-sub{font-size:12px;color:var(--tg);font-weight:400}
+.panel-body{padding:14px 20px}
 
-/* DESIGNER LIST */
-.dl-hdr {
-  display: grid; grid-template-columns: 1fr 52px 120px 52px;
-  gap: 8px; padding: 0 0 10px;
-  font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; font-weight: 500;
-  border-bottom: 1px solid var(--border);
-}
-.dl-row {
-  display: grid; grid-template-columns: 1fr 52px 120px 52px;
-  gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center;
-}
-.dl-row:last-child { border-bottom: none; }
-.dl-name { font-size: 13px; font-weight: 500; }
-.dl-builds { font-size: 13px; font-weight: 600; text-align: center; color: var(--text2); }
-.dl-bwrap { display: flex; align-items: center; gap: 8px; }
-.dl-bbg { flex: 1; height: 6px; background: var(--bg); border-radius: 96px; overflow: hidden; }
-.dl-bfill { height: 100%; border-radius: 96px; }
-.dl-score { font-size: 13px; font-weight: 600; text-align: right; }
+/* ── DESIGNER LIST ── */
+.dl-hdr{display:grid;grid-template-columns:1fr 52px 120px 44px;gap:8px;padding:0 0 10px;font-size:11px;color:var(--tg);text-transform:uppercase;letter-spacing:.06em;font-weight:500;border-bottom:1px solid var(--brd)}
+.dl-row{display:grid;grid-template-columns:1fr 52px 120px 44px;gap:8px;padding:10px 0;border-bottom:1px solid var(--brd);align-items:center}
+.dl-row:last-child{border-bottom:none}
+.dl-name{font-size:13px;font-weight:500}
+.dl-builds{font-size:13px;font-weight:600;text-align:center;color:var(--tp)}
+.dl-bwrap{display:flex;align-items:center;gap:8px}
+.dl-bbg{flex:1;height:5px;background:var(--brd2);border-radius:96px;overflow:hidden}
+.dl-bfill{height:100%;border-radius:96px}
+.dl-score{font-size:13px;font-weight:600;text-align:right}
 
-/* MONTH CHART */
-.mc { display: flex; gap: 20px; align-items: flex-end; padding: 8px 0 4px; }
-.mc-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.mc-bars { display: flex; gap: 4px; align-items: flex-end; justify-content: center; width: 100%; }
-.mc-bar { width: 20px; border-radius: 4px 4px 0 0; min-height: 4px; transition: opacity .2s; }
-.mc-bar:hover { opacity: .7; }
-.mc-nums { font-size: 12px; font-weight: 600; display: flex; gap: 8px; }
-.mc-name { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; }
-.mc-total { font-size: 11px; color: var(--text3); }
-.mc-legend { display: flex; gap: 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-.mc-li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); }
-.mc-dot { width: 10px; height: 10px; border-radius: 3px; }
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;max-height:460px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{position:sticky;top:0;z-index:10;background:var(--s3)}
+th{text-align:left;font-size:11px;font-weight:500;color:var(--tg);text-transform:uppercase;letter-spacing:.07em;padding:10px 16px;border-bottom:1px solid var(--brd);white-space:nowrap}
+td{padding:10px 16px;border-bottom:1px solid var(--brd);color:var(--tp)}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--s4)}
+.chip{display:inline-flex;align-items:center;padding:2px 10px;border-radius:96px;font-size:12px;font-weight:600}
 
-/* TABS */
-.tab-bar { display: flex; gap: 3px; background: var(--bg); border-radius: 10px; padding: 3px; }
-.tab-btn {
-  padding: 5px 16px; border: none; background: transparent; color: var(--text3);
-  font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 500;
-  border-radius: 8px; cursor: pointer; transition: all .15s;
-}
-.tab-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(10,9,27,.1); }
+/* ── SCORE BAR (bonus) ── */
+.bw{display:flex;align-items:center;gap:8px}
+.bbg{flex:1;height:5px;background:var(--brd2);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px}
+.sn{font-size:12px;font-weight:600;min-width:44px;text-align:right}
 
-/* TABLE */
-.table-wrap { overflow-x: auto; max-height: 480px; overflow-y: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-thead { position: sticky; top: 0; z-index: 10; background: var(--surface); }
-th { text-align: left; font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; padding: 10px 16px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
-tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: var(--bg); }
-.score-chip { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 96px; font-size: 12px; font-weight: 600; }
-.type-chip  { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 96px; font-size: 11px; font-weight: 500; }
-.chip-copy   { background: var(--copy-dim);   color: var(--copy-text);   }
-.chip-design { background: var(--design-dim); color: var(--design-text); }
+/* ── BONUS SECTION ── */
+.bonus-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--s3);border:1px solid var(--brd);border-radius:var(--r);padding:12px 18px;margin-bottom:16px;font-size:13px;color:var(--tp)}
+.bonus-bar strong{color:var(--tw);font-weight:600}
+.bsep{color:var(--brd2)}
+.bonus-filter-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.bonus-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.bcard{background:var(--s3);border:1px solid var(--brd);border-radius:var(--rl);padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s}
+.bcard.eligible{border-color:rgba(22,163,74,0.35)}
+.bcard.ineligible{border-color:rgba(239,68,68,0.25)}
+.bcard-stripe{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--rl) var(--rl) 0 0}
+.bcard.eligible .bcard-stripe{background:var(--green)}
+.bcard.ineligible .bcard-stripe{background:var(--red)}
+.bcard.not-qualified .bcard-stripe,.bcard.exempt .bcard-stripe{background:var(--brd2)}
+.bcard-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.bcard-name{font-size:14px;font-weight:600}
+.bcard-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:96px}
+.bb-eligible{background:var(--green-dim);color:var(--green-t);border:1px solid var(--green-border)}
+.bb-ineligible{background:var(--red-dim);color:var(--red-t);border:1px solid var(--red-border)}
+.bb-exempt,.bb-nq{background:rgba(255,255,255,.05);color:var(--tg);border:1px solid var(--brd2)}
+.brows{display:flex;flex-direction:column;gap:8px}
+.brow{display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.brow-label{color:var(--tg)}
+.brow-val{font-weight:600}
+.brow-val.pass{color:var(--green-t)}
+.brow-val.fail{color:var(--red-t)}
+.brow-val.warn{color:var(--amber-t)}
+.brow-val.neutral{color:var(--tp)}
+.bdiv{height:1px;background:var(--brd);margin:4px 0}
+.bcombined{display:flex;align-items:center;justify-content:space-between;background:var(--s4);border-radius:8px;padding:10px 12px;margin-top:4px}
+.bcombined-label{font-size:13px;font-weight:500;color:var(--tp)}
+.bcombined-val{font-size:20px;font-weight:700}
+.bmissing{font-size:11px;color:var(--amber-t);background:var(--amber-dim);border-radius:6px;padding:4px 8px;margin-top:8px}
 
-/* BONUS */
-.bonus-filter-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-.bonus-rules { font-size: 12px; color: var(--text3); }
-.bonus-bar {
-  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 12px 18px; margin-bottom: 16px;
-  font-size: 13px; color: var(--text2); box-shadow: 0 1px 3px rgba(10,9,27,.05);
-}
-.bstat { display: flex; align-items: center; gap: 5px; }
-.bstat strong { color: var(--text); font-weight: 600; }
-.bsep { color: var(--border2); }
-.bonus-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 12px; }
-.bcard {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 16px; padding: 18px 20px; position: relative; overflow: hidden;
-  box-shadow: 0 1px 3px rgba(10,9,27,.05); transition: box-shadow .2s;
-}
-.bcard:hover { box-shadow: 0 4px 12px rgba(10,9,27,.08); }
-.bcard.eligible   { border-color: #6ce9a6; }
-.bcard.ineligible { border-color: #fda29b; }
-.bcard-stripe { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
-.bcard.eligible   .bcard-stripe { background: var(--green); }
-.bcard.ineligible .bcard-stripe { background: var(--red); }
-.bcard.not-qualified .bcard-stripe, .bcard.exempt .bcard-stripe { background: var(--border2); }
-.bcard-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.bcard-name { font-size: 14px; font-weight: 600; }
-.bcard-badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 96px; }
-.bb-eligible     { background: var(--green-dim); color: var(--green-text); }
-.bb-ineligible   { background: var(--red-dim);   color: var(--red-text);   }
-.bb-exempt, .bb-not-qualified { background: var(--bg); color: var(--text3); border: 1px solid var(--border); }
-.brows { display: flex; flex-direction: column; gap: 8px; }
-.brow { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-.brow-label { color: var(--text3); }
-.brow-val { font-weight: 600; }
-.brow-val.pass    { color: var(--green-text); }
-.brow-val.fail    { color: var(--red-text);   }
-.brow-val.warn    { color: var(--yellow-text);}
-.brow-val.neutral { color: var(--text2);      }
-.bdiv { height: 1px; background: var(--border); margin: 4px 0; }
-.bcombined { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-top: 4px; }
-.bcombined-label { font-size: 13px; font-weight: 500; color: var(--text2); }
-.bcombined-val { font-size: 20px; font-weight: 700; }
-.bmissing { font-size: 11px; color: var(--yellow-text); background: var(--yellow-dim); border-radius: 6px; padding: 4px 8px; margin-top: 8px; }
+/* ── SLACK BUTTON ── */
+.slack-section{margin-top:24px;display:none}
+.slack-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--blue);border:none;border-radius:var(--r);font-size:13px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--f);transition:background .15s}
+.slack-btn:hover{background:#1256d4}
+.slack-hint{font-size:12px;color:var(--tg);margin-top:8px}
 
-/* EMPTY / FOOTER */
-.empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 13px; }
-.footer { text-align: center; color: var(--text3); font-size: 12px; padding: 20px 0 0; border-top: 1px solid var(--border); margin-top: 48px; display: none; }
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 20px;color:var(--tg);font-size:13px}
 </style>
 </head>
 <body>
 
+<!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-logo">
-    <svg class="spoton-icon" viewBox="0 0 24 24" fill="white" fill-rule="evenodd" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 24 24" fill="white" fill-rule="evenodd" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;flex-shrink:0">
       <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/>
     </svg>
-    <div class="topbar-title">WDD <span>/ QA Dashboard</span></div>
+    <div class="topbar-title">SpotOn <span>/ WDD QA Dashboard</span></div>
   </div>
   <div class="topbar-div"></div>
   <span class="pill pill-copy">Copy QA</span>
   <span class="pill pill-design">Design QA</span>
   <div class="topbar-spacer"></div>
-  <span class="last-updated" id="last-updated"></span>
+  <div class="topbar-nav">
+    <button class="nav-btn" onclick="scrollTo('sec-insights')">Insights</button>
+    <button class="nav-btn" onclick="scrollTo('sec-performance')">Performance</button>
+    <button class="nav-btn" onclick="scrollTo('sec-log')">Build log</button>
+    <button class="nav-btn" onclick="scrollTo('sec-bonus')">Bonus</button>
+  </div>
+  <div class="topbar-div"></div>
+  <div class="status-dot" id="status-dot"></div>
+  <span class="last-sync" id="last-sync">Loading…</span>
   <button class="refresh-btn" id="refresh-btn" onclick="loadData()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>
       <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
     </svg>
-    Refresh data
+    Refresh
   </button>
 </div>
 
-<div class="layout">
-  <div class="sidebar"></div>
-  <div class="main">
+<!-- MAIN -->
+<div class="main">
+  <div id="loading" class="loading-overlay">
+    <div class="spinner"></div>
+    <div style="font-size:13px;color:var(--tg)">Loading QA data from Google Sheets…</div>
+  </div>
+  <div id="err-msg" class="err-box"></div>
+  <div id="dashboard" style="display:none">
 
-    <div id="loading" class="loading-overlay">
-      <div class="spinner"></div>
-      <div style="font-size:13px">Loading QA data from Google Sheets…</div>
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="ey">Website Design &amp; Development</div>
+      <div class="pt">QA Performance Dashboard</div>
+      <div class="ps">Copy QA · Design QA · Productivity bonus · 2026</div>
     </div>
-    <div id="error-msg" class="error-box" style="display:none"></div>
 
-    <div id="dashboard" style="display:none">
-      <div id="setup-warning" class="setup-warn">
-        ⚠ <strong>Configuration needed:</strong> Replace the placeholder URLs in the script with your Apps Script Web App URLs.
-        Look for <code>COPY_QA_URL</code> and <code>DESIGN_QA_URL</code> near the top of the script block.
+    <!-- Filters -->
+    <div class="filters-bar">
+      <div class="fg"><div class="fl">Designer</div>
+        <select class="fsel" id="f-designer"><option value="all">All designers</option></select>
       </div>
-
-      <div class="page-header">
-        <div class="breadcrumb">Website Design &amp; Development</div>
-        <div class="page-title">QA Performance Dashboard</div>
-        <div class="page-sub">Copy QA and Design QA scores across all designers · 2026</div>
-      </div>
-
-      <div class="filters-bar">
-        <div class="fg"><div class="fl">Designer</div>
-          <select class="filter-select" id="f-designer"><option value="all">All designers</option></select>
-        </div>
-        <div class="fsep"></div>
-        <div class="fg"><div class="fl">Month</div>
-          <select class="filter-select" id="f-month">
-            <option value="all">All months</option>
-            <option value="1">January</option><option value="2">February</option>
-            <option value="3">March</option><option value="4">April</option>
-          </select>
-        </div>
-        <div class="fsep"></div>
-        <div class="fg"><div class="fl">QA type</div>
-          <select class="filter-select" id="f-type">
-            <option value="all">Both</option>
-            <option value="copy">Copy QA only</option>
-            <option value="design">Design QA only</option>
-          </select>
-        </div>
-        <div class="fsep"></div>
-        <div class="fg"><div class="fl">Score range</div>
-          <select class="filter-select" id="f-score">
-            <option value="all">All scores</option>
-            <option value="100">Perfect (100)</option>
-            <option value="95">95 and above</option>
-            <option value="90">90 and above</option>
-            <option value="below90">Below 90</option>
-          </select>
-        </div>
-        <button class="btn-ghost" onclick="resetFilters()">Reset</button>
-        <div class="finfo" id="filter-info"></div>
-      </div>
-
-      <div class="sh">Insights</div>
-      <div class="ig" id="insight-grid"></div>
-
-      <div class="sh">Summary</div>
-      <div class="sg" id="stat-grid"></div>
-
-      <div class="sh">Designer performance</div>
-      <div class="two-col">
-        <div class="panel">
-          <div class="ph">
-            <div class="pt">Copy QA <span class="ptn">avg score · builds</span></div>
-            <span class="pill pill-copy" style="font-size:10px">Copy</span>
-          </div>
-          <div class="pb" id="copy-list"></div>
-        </div>
-        <div class="panel">
-          <div class="ph">
-            <div class="pt">Design QA <span class="ptn">avg score · builds</span></div>
-            <span class="pill pill-design" style="font-size:10px">Design</span>
-          </div>
-          <div class="pb" id="design-list"></div>
-        </div>
-      </div>
-
-      <div class="sh">Build log</div>
-      <div class="panel">
-        <div class="ph">
-          <div class="pt">All builds <span class="ptn" id="table-count"></span></div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Date</th><th>Business</th><th>Designer</th><th>Copy QA</th><th>Design QA</th><th>Avg</th></tr></thead>
-            <tbody id="table-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="sh">Productivity bonus tracker</div>
-      <div class="bonus-bar" id="bonus-summary-bar"></div>
-      <div class="bonus-filter-row">
-        <span style="font-size:12px;color:var(--text3);font-weight:500">Month:</span>
-        <select class="filter-select" id="bonus-month" style="min-width:148px">
-          <option value="all">All months (combined)</option>
+      <div class="fsep"></div>
+      <div class="fg"><div class="fl">Month</div>
+        <select class="fsel" id="f-month">
+          <option value="all">All months</option>
           <option value="1">January</option><option value="2">February</option>
           <option value="3">March</option><option value="4">April</option>
+          <option value="5">May</option><option value="6">June</option>
         </select>
-        <span class="bonus-rules">Rules: ≥7 builds &nbsp;·&nbsp; combined avg ≥95% &nbsp;·&nbsp; Elizabeth &amp; Daniela exempt</span>
       </div>
-      <div class="bonus-grid" id="bonus-grid"></div>
+      <div class="fsep"></div>
+      <div class="fg"><div class="fl">QA type</div>
+        <select class="fsel" id="f-type">
+          <option value="all">Both</option>
+          <option value="copy">Copy QA only</option>
+          <option value="design">Design QA only</option>
+        </select>
+      </div>
+      <div class="fsep"></div>
+      <div class="fg"><div class="fl">Score range</div>
+        <select class="fsel" id="f-score">
+          <option value="all">All scores</option>
+          <option value="100">Perfect (100)</option>
+          <option value="95">95 and above</option>
+          <option value="90">90 and above</option>
+          <option value="below90">Below 90</option>
+        </select>
+      </div>
+      <button class="btn-ghost" onclick="resetFilters()">Reset</button>
+      <div class="finfo" id="filter-info"></div>
     </div>
 
-    <div class="footer" id="footer">WDD QA Dashboard &nbsp;·&nbsp; Copy QA + Design QA &nbsp;·&nbsp; Live data from Google Sheets</div>
-  </div>
-</div>
+    <!-- Insights -->
+    <div class="sh" id="sec-insights">Insights</div>
+    <div class="ig" id="insight-grid"></div>
+
+    <!-- Summary stats -->
+    <div class="sh">Summary</div>
+    <div class="sg" id="stat-grid"></div>
+
+    <!-- Designer performance -->
+    <div class="sh" id="sec-performance">Designer performance</div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-hdr">
+          <div class="panel-title">Copy QA <span class="panel-sub">avg score · builds</span></div>
+          <span class="pill pill-copy" style="font-size:10px">Copy</span>
+        </div>
+        <div class="panel-body" id="copy-list"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-hdr">
+          <div class="panel-title">Design QA <span class="panel-sub">avg score · builds</span></div>
+          <span class="pill pill-design" style="font-size:10px">Design</span>
+        </div>
+        <div class="panel-body" id="design-list"></div>
+      </div>
+    </div>
+
+    <!-- Build log -->
+    <div class="sh" id="sec-log">Build log</div>
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">All builds <span class="panel-sub" id="table-count"></span></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Business</th><th>Designer</th><th>Copy QA</th><th>Design QA</th><th>Avg</th></tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bonus tracker -->
+    <div class="sh" id="sec-bonus">Productivity bonus tracker</div>
+    <div class="bonus-bar" id="bonus-bar"></div>
+    <div class="bonus-filter-row">
+      <span style="font-size:12px;color:var(--tg);font-weight:500">Month:</span>
+      <select class="fsel" id="bonus-month" style="min-width:148px">
+        <option value="all">All months (combined)</option>
+        <option value="1">January</option><option value="2">February</option>
+        <option value="3">March</option><option value="4">April</option>
+        <option value="5">May</option><option value="6">June</option>
+      </select>
+      <span style="font-size:12px;color:var(--tg)">Rules: ≥7 builds · combined avg ≥95% · Elizabeth &amp; Daniela exempt</span>
+    </div>
+    <div class="bonus-grid" id="bonus-grid"></div>
+
+    <!-- Slack notify -->
+    <div class="slack-section" id="slack-section">
+      <button class="slack-btn" id="slack-btn" onclick="sendSlackNotifications()">
+        <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.1a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Notify bonus winners via Slack
+      </button>
+      <div class="slack-hint">Copies a message to your clipboard — paste it in Claude to send the DMs.</div>
+    </div>
+
+  </div><!-- /dashboard -->
+</div><!-- /main -->
 
 <script>
-// ============================================================
-//  ⚙️  CONFIGURATION — paste your Web App URLs here
-// ============================================================
+// ── CONFIG ────────────────────────────────────────────────────
 const COPY_QA_URL   = 'https://script.google.com/macros/s/AKfycbwS24Osis8YPSpBtYbl1HOo6BopEF9-KKni5oOFid0BGuAxpXazYdrJYHg2OBvKjP45jg/exec';
 const DESIGN_QA_URL = 'https://script.google.com/macros/s/AKfycbyPiVxBgM_rrDbY9ZApigutMA0li9fzyefarva2NFqxTBlJurMuqGXF5XbQRxP1QpfV2A/exec';
-// ============================================================
 
-// Canonical designer name map — normalizes accent/spelling variants from either sheet
-const NAME_MAP = {
-  'javier perez':   'Javier Pérez',
-  'javier pérez':   'Javier Pérez',
-  'plinio ramirez': 'Plinio Ramírez',
-  'plinio ramírez': 'Plinio Ramírez',
-  'diego diaz':     'Diego Díaz',
-  'diego díaz':     'Diego Díaz',
-  'marco garcia':   'Marco García',
-  'marco garcía':   'Marco García',
-  'daniel mateos':  'Daniel Mateos',
-  'daniela nava':   'Daniela Nava',
-  'eder moreno':    'Eder Moreno',
-  'elizabeth mell': 'Elizabeth Mell',
-  'miriam galindo': 'Miriam Galindo',
+const EXEMPT = ['Elizabeth Mell', 'Daniela Nava'];
+const MIN_BUILDS = 7, MIN_AVG = 95;
+
+const EMAIL_MAP = {
+  'marco garcia':   'marco.garcia@spoton.com',
+  'eder moreno':    'ericardomoreno@spoton.com',
+  'miriam galindo': 'mgalindo@spoton.com',
+  'plinio ramirez': 'plinio.rangel@spoton.com',
+  'javier perez':   'jperez@spoton.com',
+  'diego diaz':     'diego.diaz@spoton.com',
+  'daniel mateos':  'dmateos@spoton.com'
 };
-function normalizeName(n) {
-  return NAME_MAP[n.toLowerCase().trim()] || n.trim();
-}
 
-// Normalize account names for matching across sheets (lowercase, collapse whitespace)
-function normKey(s) {
-  return s.toLowerCase().replace(/\s+/g, ' ').trim()
-    // handle known spelling variants
-    .replace("little gridlle", "little griddle")
-    .replace("el tocayo birrieria estilo tijuana hesperia #1", "birriería el tocayo")
-    .replace("cocky's coop", "cocky's coop")  // already consistent
-    .replace("birriería el tocayo", "el tocayo")
-    .replace("el tocayo birrieria estilo tijuana hesperia #1", "el tocayo");
-}
-
-// ALL_DATA: raw arrays from each sheet. BUILDS: merged one-per-build.
-let RAW_COPY   = [];
-let RAW_DESIGN = [];
-let BUILDS     = []; // [{date, designer, account, month, copyScore, designScore}]
-
+const NAME_MAP = {
+  'javier perez':'Javier Pérez','javier pérez':'Javier Pérez',
+  'plinio ramirez':'Plinio Ramírez','plinio ramírez':'Plinio Ramírez',
+  'diego diaz':'Diego Díaz','diego díaz':'Diego Díaz',
+  'marco garcia':'Marco García','marco garcía':'Marco García',
+  'daniel mateos':'Daniel Mateos','daniela nava':'Daniela Nava',
+  'eder moreno':'Eder Moreno','elizabeth mell':'Elizabeth Mell',
+  'miriam galindo':'Miriam Galindo',
+};
 const MN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// ── JSONP ─────────────────────────────────────────────────────
-function jsonp(url) {
-  return new Promise((resolve, reject) => {
-    const cbName = '_cb_' + Math.random().toString(36).slice(2);
-    const script = document.createElement('script');
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error('Request timed out. Check the Apps Script URL is correct and deployed as "Anyone" can access.'));
-    }, 15000);
-    function cleanup() { clearTimeout(timeout); delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); }
-    window[cbName] = function(data) { cleanup(); resolve(data); };
-    script.onerror = function() { cleanup(); reject(new Error('Script load failed. Verify the /exec URL and "Anyone" access setting.')); };
-    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+let BUILDS = [];
+let currentWinners = [];
+
+// ── HELPERS ───────────────────────────────────────────────────
+function normName(n){ return NAME_MAP[n.toLowerCase().trim()] || n.trim(); }
+function normKey(s){ return s.toLowerCase().replace(/\s+/g,' ').trim(); }
+function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+function avgScore(b){
+  if(b.copyScore!==null && b.designScore!==null) return (b.copyScore+b.designScore)/2;
+  return b.copyScore??b.designScore;
+}
+function scoreColor(s){
+  if(s>=100) return 'var(--green-t)';
+  if(s>=95)  return 'var(--lime-t)';
+  if(s>=90)  return 'var(--amber-t)';
+  return 'var(--red-t)';
+}
+function chipStyle(s){
+  if(s===null||s===undefined) return 'background:rgba(255,255,255,.05);color:var(--tg)';
+  if(s>=100) return 'background:var(--green-dim);color:var(--green-t)';
+  if(s>=95)  return 'background:var(--lime-dim);color:var(--lime-t)';
+  if(s>=90)  return 'background:var(--amber-dim);color:var(--amber-t)';
+  return 'background:var(--red-dim);color:var(--red-t)';
+}
+function scoreBar(s){
+  if(s==null||isNaN(s)) return '<span style="color:var(--tg);font-size:12px">—</span>';
+  const c = s>=95?'var(--green-t)':s>=90?'var(--amber-t)':'var(--red-t)';
+  return `<div class="bw"><div class="bbg"><div class="bf" style="width:${Math.min(s,100)}%;background:${c}"></div></div><span class="sn" style="color:${c}">${s.toFixed(2)}%</span></div>`;
+}
+function getPrevMonth(){
+  const d=new Date(); d.setMonth(d.getMonth()-1);
+  return d.toLocaleString('en-US',{month:'long',year:'numeric'});
+}
+function scrollTo(id){ document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'}); }
+
+// ── JSONP FETCH ───────────────────────────────────────────────
+function jsonp(url){
+  return new Promise((resolve,reject)=>{
+    const cb='_cb_'+Math.random().toString(36).slice(2);
+    const script=document.createElement('script');
+    const timeout=setTimeout(()=>{ cleanup(); reject(new Error('Request timed out')); },15000);
+    function cleanup(){ clearTimeout(timeout); delete window[cb]; script.parentNode?.removeChild(script); }
+    window[cb]=data=>{ cleanup(); resolve(data); };
+    script.onerror=()=>{ cleanup(); reject(new Error('Script load failed')); };
+    script.src=url+(url.includes('?')?'&':'?')+'callback='+cb+'&v='+Date.now();
     document.head.appendChild(script);
   });
 }
 
-// ── MERGE BUILDS ──────────────────────────────────────────────
-// Match copy and design rows by (normalized account name + normalized designer name + month).
-// Result: one build row with both scores. Unmatched rows show only the score they have.
-function mergeBuilds(copyRows, designRows) {
-  const builds = [];
-  const designUsed = new Set();
-
-  copyRows.forEach((c, ci) => {
-    const ck = normKey(c.account) + '|' + normalizeName(c.designer).toLowerCase() + '|' + c.month;
-    // find matching design row
-    let matchIdx = -1;
-    for (let di = 0; di < designRows.length; di++) {
-      if (designUsed.has(di)) continue;
-      const d = designRows[di];
-      const dk = normKey(d.account) + '|' + normalizeName(d.designer).toLowerCase() + '|' + d.month;
-      if (dk === ck) { matchIdx = di; break; }
+// ── MERGE BUILDS ─────────────────────────────────────────────
+function mergeBuilds(copyRows, designRows){
+  const builds=[], designUsed=new Set();
+  copyRows.forEach(c=>{
+    const ck=normKey(c.account)+'|'+normName(c.designer).toLowerCase()+'|'+c.month;
+    let mi=-1;
+    for(let i=0;i<designRows.length;i++){
+      if(designUsed.has(i)) continue;
+      const d=designRows[i];
+      if(normKey(d.account)+'|'+normName(d.designer).toLowerCase()+'|'+d.month===ck){ mi=i; break; }
     }
-    const designRow = matchIdx >= 0 ? designRows[matchIdx] : null;
-    if (matchIdx >= 0) designUsed.add(matchIdx);
-
-    builds.push({
-      date:        c.date,
-      designer:    normalizeName(c.designer),
-      account:     c.account,
-      month:       c.month,
-      monthName:   c.monthName,
-      copyScore:   c.score,
-      designScore: designRow ? designRow.score : null,
-    });
+    const dr=mi>=0?designRows[mi]:null;
+    if(mi>=0) designUsed.add(mi);
+    builds.push({ date:c.date, designer:normName(c.designer), account:c.account, month:c.month, monthName:c.monthName, copyScore:c.score, designScore:dr?dr.score:null });
   });
-
-  // Any design rows that had no copy match
-  designRows.forEach((d, di) => {
-    if (designUsed.has(di)) return;
-    builds.push({
-      date:        d.date,
-      designer:    normalizeName(d.designer),
-      account:     d.account,
-      month:       d.month,
-      monthName:   d.monthName,
-      copyScore:   null,
-      designScore: d.score,
-    });
+  designRows.forEach((d,i)=>{
+    if(designUsed.has(i)) return;
+    builds.push({ date:d.date, designer:normName(d.designer), account:d.account, month:d.month, monthName:d.monthName, copyScore:null, designScore:d.score });
   });
-
-  return builds.sort((a, b) => b.date.localeCompare(a.date));
+  return builds.sort((a,b)=>b.date.localeCompare(a.date));
 }
 
-// ── LOAD ──────────────────────────────────────────────────────
-async function loadData() {
-  const btn = document.getElementById('refresh-btn');
+// ── LOAD DATA ────────────────────────────────────────────────
+async function loadData(){
+  const btn=document.getElementById('refresh-btn');
+  const dot=document.getElementById('status-dot');
   btn.classList.add('spinning');
-  document.getElementById('error-msg').style.display = 'none';
-
-  if (!BUILDS.length) {
-    document.getElementById('loading').style.display = 'flex';
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('footer').style.display = 'none';
+  dot.className='status-dot';
+  if(!BUILDS.length){
+    document.getElementById('loading').style.display='flex';
+    document.getElementById('dashboard').style.display='none';
   }
-
-  if (COPY_QA_URL.includes('PASTE') || DESIGN_QA_URL.includes('PASTE')) {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    document.getElementById('footer').style.display = 'block';
-    document.getElementById('setup-warning').style.display = 'block';
-    btn.classList.remove('spinning');
-    BUILDS = [];
+  document.getElementById('err-msg').style.display='none';
+  try{
+    const [cr,dr]=await Promise.all([jsonp(COPY_QA_URL),jsonp(DESIGN_QA_URL)]);
+    if(cr.status!=='ok') throw new Error('Copy QA: '+cr.message);
+    if(dr.status!=='ok') throw new Error('Design QA: '+dr.message);
+    const copyRows  =cr.data.map(r=>({...r,designer:normName(r.designer)}));
+    const designRows=dr.data.map(r=>({...r,designer:normName(r.designer)}));
+    BUILDS=mergeBuilds(copyRows,designRows);
+    // populate designer filter
+    const designers=[...new Set(BUILDS.map(b=>b.designer))].sort();
+    const sel=document.getElementById('f-designer');
+    const cur=sel.value;
+    sel.innerHTML='<option value="all">All designers</option>';
+    designers.forEach(d=>{ const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o); });
+    if(cur!=='all') sel.value=cur;
+    dot.className='status-dot ok';
+    document.getElementById('last-sync').textContent='Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('loading').style.display='none';
+    document.getElementById('dashboard').style.display='block';
     renderAll();
-    return;
-  }
-
-  try {
-    const [copyRes, designRes] = await Promise.all([jsonp(COPY_QA_URL), jsonp(DESIGN_QA_URL)]);
-    if (copyRes.status !== 'ok')   throw new Error('Copy QA script error: ' + copyRes.message);
-    if (designRes.status !== 'ok') throw new Error('Design QA script error: ' + designRes.message);
-
-    RAW_COPY   = copyRes.data.map(r => ({ ...r, designer: normalizeName(r.designer) }));
-    RAW_DESIGN = designRes.data.map(r => ({ ...r, designer: normalizeName(r.designer) }));
-    BUILDS     = mergeBuilds(RAW_COPY, RAW_DESIGN);
-
-    // Populate designer filter from merged builds
-    const designers = [...new Set(BUILDS.map(b => b.designer))].sort();
-    const sel = document.getElementById('f-designer');
-    const cur = sel.value;
-    sel.innerHTML = '<option value="all">All designers</option>';
-    designers.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
-    if (cur !== 'all') sel.value = cur;
-
-    document.getElementById('last-updated').textContent =
-      'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    document.getElementById('footer').style.display = 'block';
-    renderAll();
-  } catch (err) {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('dashboard').style.display = BUILDS.length ? 'block' : 'none';
-    const e = document.getElementById('error-msg');
-    e.style.display = 'block';
-    e.textContent = '⚠ ' + err.message;
+  } catch(err){
+    dot.className='status-dot err';
+    document.getElementById('last-sync').textContent='Fetch failed';
+    document.getElementById('loading').style.display='none';
+    if(BUILDS.length){
+      document.getElementById('dashboard').style.display='block';
+      const e=document.getElementById('err-msg');
+      e.style.display='block';
+      e.textContent='⚠ Could not refresh: '+err.message+' — showing last loaded data.';
+      renderAll();
+    } else {
+      document.getElementById('dashboard').style.display='none';
+      const e=document.getElementById('err-msg');
+      e.style.display='block';
+      e.textContent='⚠ '+err.message;
+    }
   }
   btn.classList.remove('spinning');
 }
 
-// ── FILTERS ───────────────────────────────────────────────────
-function getFilters() {
-  return {
-    designer: document.getElementById('f-designer').value,
-    month:    document.getElementById('f-month').value,
-    score:    document.getElementById('f-score').value,
-  };
-}
-
-function applyFilters(builds, f) {
-  return builds.filter(b => {
-    if (f.designer !== 'all' && b.designer !== f.designer) return false;
-    if (f.month    !== 'all' && b.month !== parseInt(f.month)) return false;
-    // Score filter: applies to whichever scores exist (either exceeds threshold)
-    if (f.score === '100')    { if (b.copyScore !== 100 || b.designScore !== 100) return false; }
-    if (f.score === '95')     { const s = avgScore(b); if (s === null || s < 95)  return false; }
-    if (f.score === '90')     { const s = avgScore(b); if (s === null || s < 90)  return false; }
-    if (f.score === 'below90'){ const s = avgScore(b); if (s === null || s >= 90) return false; }
+// ── FILTERS ──────────────────────────────────────────────────
+function getFilters(){ return { designer:document.getElementById('f-designer').value, month:document.getElementById('f-month').value, type:document.getElementById('f-type').value, score:document.getElementById('f-score').value }; }
+function applyFilters(builds,f){
+  return builds.filter(b=>{
+    if(f.designer!=='all'&&b.designer!==f.designer) return false;
+    if(f.month!=='all'&&b.month!==parseInt(f.month)) return false;
+    if(f.type==='copy'   &&b.copyScore===null)   return false;
+    if(f.type==='design' &&b.designScore===null)  return false;
+    const s=avgScore(b);
+    if(f.score==='100'   &&(b.copyScore!==100||b.designScore!==100)) return false;
+    if(f.score==='95'    &&(s===null||s<95))  return false;
+    if(f.score==='90'    &&(s===null||s<90))  return false;
+    if(f.score==='below90'&&(s===null||s>=90)) return false;
     return true;
   });
 }
-
-function resetFilters() {
-  ['f-designer','f-month','f-score'].forEach(id => document.getElementById(id).value = 'all');
-  renderAll();
-}
-
-// ── HELPERS ───────────────────────────────────────────────────
-function avg(arr) { return arr.length ? arr.reduce((a,b) => a+b, 0) / arr.length : 0; }
-
-// Average score for a single build (average of copy + design if both exist)
-function avgScore(b) {
-  if (b.copyScore !== null && b.designScore !== null) return (b.copyScore + b.designScore) / 2;
-  return b.copyScore ?? b.designScore;
-}
-
-function scoreColor(s) {
-  if (s >= 100) return 'var(--green-text)';
-  if (s >= 95)  return 'var(--lime)';
-  if (s >= 90)  return 'var(--yellow-text)';
-  return 'var(--red-text)';
-}
-
-function chipStyle(s) {
-  if (s === null || s === undefined) return 'background:var(--bg);color:var(--text3)';
-  if (s >= 100) return 'background:var(--green-dim);color:var(--green-text)';
-  if (s >= 95)  return 'background:var(--lime-dim);color:var(--lime)';
-  if (s >= 90)  return 'background:var(--yellow-dim);color:var(--yellow-text)';
-  return 'background:var(--red-dim);color:var(--red-text)';
-}
+function resetFilters(){ ['f-designer','f-month','f-type','f-score'].forEach(id=>document.getElementById(id).value='all'); renderAll(); }
 
 // ── RENDER ALL ────────────────────────────────────────────────
-function renderAll() {
-  const f = getFilters();
-  const filtered = applyFilters(BUILDS, f);
-
-  document.getElementById('filter-info').innerHTML =
-    `<span>${filtered.length}</span> build${filtered.length !== 1 ? 's' : ''}`;
-
+function renderAll(){
+  const f=getFilters();
+  const filtered=applyFilters(BUILDS,f);
+  document.getElementById('filter-info').innerHTML=`<span>${filtered.length}</span> build${filtered.length!==1?'s':''}`;
   renderInsights(filtered);
   renderStats(filtered);
-  renderDesignerList('copy-list',   filtered, 'copy');
-  renderDesignerList('design-list', filtered, 'design');
+  renderDesignerList('copy-list',filtered,'copy');
+  renderDesignerList('design-list',filtered,'design');
   renderTable(filtered);
   renderBonus();
 }
 
-// ── INSIGHTS ──────────────────────────────────────────────────
-function renderInsights(builds) {
-  const el = document.getElementById('insight-grid');
-  if (!builds.length) { el.innerHTML = '<div class="empty">No data matches your filters.</div>'; return; }
-
-  // Perfect build = BOTH copy AND design are 100
-  const perfect = builds.filter(b => b.copyScore === 100 && b.designScore === 100).length;
-
-  // Below 90: avg of both scores < 90 (or either score < 90 if only one exists)
-  const below90 = builds.filter(b => { const s = avgScore(b); return s !== null && s < 90; }).length;
-
-  // Top designer by avg combined score
-  function topDesigner(scoreKey) {
-    const map = {};
-    builds.forEach(b => {
-      const s = b[scoreKey];
-      if (s === null) return;
-      if (!map[b.designer]) map[b.designer] = [];
-      map[b.designer].push(s);
-    });
-    let best = { name: '', avg: 0 };
-    Object.entries(map).forEach(([d, scores]) => { const a = avg(scores); if (a > best.avg) best = { name: d, avg: a }; });
-    return best;
-  }
-  const topCopy   = topDesigner('copyScore');
-  const topDesign = topDesigner('designScore');
-
-  const cards = [
-    { icon:'✅', bg:'var(--lime-dim)',     c:'var(--lime)',        label:'Perfect builds',  value: perfect,              sub: `both Copy & Design = 100` },
-    { icon:'⚠️', bg:'var(--red-dim)',     c:'var(--red-text)',    label:'Below 90',        value: below90,              sub: `${((below90/builds.length)*100).toFixed(0)}% of all builds` },
-    { icon:'📝', bg:'var(--copy-dim)',    c:'var(--copy-text)',   label:'Top Copy QA',     value: topCopy.name  || '—', sub: topCopy.name  ? `avg ${topCopy.avg.toFixed(1)}`  : '' },
-    { icon:'🎨', bg:'var(--design-dim)', c:'var(--design-text)', label:'Top Design QA',   value: topDesign.name|| '—', sub: topDesign.name? `avg ${topDesign.avg.toFixed(1)}`:''},
-    { icon:'📦', bg:'var(--brand-dim)',  c:'var(--brand)',       label:'Total builds',    value: builds.length,        sub: `${builds.filter(b=>b.copyScore!==null).length} w/ copy · ${builds.filter(b=>b.designScore!==null).length} w/ design` },
+// ── INSIGHTS ─────────────────────────────────────────────────
+function renderInsights(builds){
+  const el=document.getElementById('insight-grid');
+  if(!builds.length){ el.innerHTML='<div class="empty">No data matches your filters.</div>'; return; }
+  const perfect=builds.filter(b=>b.copyScore===100&&b.designScore===100).length;
+  const below90=builds.filter(b=>{ const s=avgScore(b); return s!==null&&s<90; }).length;
+  function topD(key){ const m={}; builds.forEach(b=>{ const s=b[key]; if(s===null)return; if(!m[b.designer])m[b.designer]=[]; m[b.designer].push(s); }); let best={name:'',avg:0}; Object.entries(m).forEach(([d,sc])=>{ const a=avg(sc); if(a>best.avg)best={name:d,avg:a}; }); return best; }
+  const tc=topD('copyScore'), td=topD('designScore');
+  const cards=[
+    {icon:'✅',bg:'var(--lime-dim)',   c:'var(--lime-t)',   label:'Perfect builds',value:perfect,          sub:'both Copy & Design = 100'},
+    {icon:'⚠️',bg:'var(--red-dim)',   c:'var(--red-t)',    label:'Below 90',     value:below90,           sub:`${((below90/builds.length)*100).toFixed(0)}% of builds`},
+    {icon:'📝',bg:'var(--copy-dim)',  c:'var(--copy-t)',   label:'Top Copy QA',  value:tc.name||'—',      sub:tc.name?`avg ${tc.avg.toFixed(1)}`:''},
+    {icon:'🎨',bg:'var(--design-dim)',c:'var(--design-t)', label:'Top Design QA',value:td.name||'—',      sub:td.name?`avg ${td.avg.toFixed(1)}`:''},
+    {icon:'📦',bg:'var(--blue-dim)',  c:'var(--copy-t)',   label:'Total builds', value:builds.length,     sub:`${builds.filter(b=>b.copyScore!==null).length} copy · ${builds.filter(b=>b.designScore!==null).length} design`},
   ];
-
-  el.innerHTML = cards.map(c => `
-    <div class="ic">
-      <div class="ic-icon" style="background:${c.bg}">${c.icon}</div>
-      <div>
-        <div class="ic-label">${c.label}</div>
-        <div class="ic-value" style="color:${c.c}" title="${c.value}">${c.value}</div>
-        <div class="ic-sub">${c.sub}</div>
-      </div>
-    </div>`).join('');
+  el.innerHTML=cards.map(c=>`<div class="ic"><div class="ic-icon" style="background:${c.bg}">${c.icon}</div><div><div class="ic-label">${c.label}</div><div class="ic-value" style="color:${c.c}">${c.value}</div><div class="ic-sub">${c.sub}</div></div></div>`).join('');
 }
 
 // ── STATS ─────────────────────────────────────────────────────
-function renderStats(builds) {
-  const el = document.getElementById('stat-grid');
-  if (!builds.length) { el.innerHTML = ''; return; }
-
-  const copyScores   = builds.filter(b => b.copyScore   !== null).map(b => b.copyScore);
-  const designScores = builds.filter(b => b.designScore !== null).map(b => b.designScore);
-  const ca = avg(copyScores), da = avg(designScores);
-  const oa = (ca + da) / 2;
-
-  // Designers = unique normalized names — should be 9
-  const uniqueDesigners = new Set(builds.map(b => b.designer)).size;
-
-  const cards = [
-    { label:'Copy QA avg',    value: copyScores.length   ? ca.toFixed(1) : '—', sub:`${copyScores.length} graded`,   stripe:'var(--copy)' },
-    { label:'Design QA avg',  value: designScores.length ? da.toFixed(1) : '—', sub:`${designScores.length} graded`, stripe:'var(--design)' },
-    { label:'Combined avg',   value: (copyScores.length && designScores.length) ? oa.toFixed(1) : '—', sub:`avg of both QA avgs`, stripe:'linear-gradient(90deg,var(--copy),var(--design))' },
-    { label:'Perfect builds', value: builds.filter(b => b.copyScore===100 && b.designScore===100).length, sub:'100 copy & 100 design', stripe:'var(--green)' },
-    { label:'Designers',      value: uniqueDesigners,    sub:'active this period',      stripe:'var(--brand)' },
-    { label:'Months tracked', value: new Set(builds.map(b => b.month)).size, sub:'in view', stripe:'var(--border2)' },
+function renderStats(builds){
+  const el=document.getElementById('stat-grid');
+  if(!builds.length){ el.innerHTML=''; return; }
+  const cs=builds.filter(b=>b.copyScore!==null).map(b=>b.copyScore);
+  const ds=builds.filter(b=>b.designScore!==null).map(b=>b.designScore);
+  const ca=avg(cs),da=avg(ds),oa=(ca+da)/2;
+  const cards=[
+    {label:'Copy QA avg',   value:cs.length?ca.toFixed(1):'—',  sub:`${cs.length} graded`,                                  stripe:'var(--copy)'},
+    {label:'Design QA avg', value:ds.length?da.toFixed(1):'—',  sub:`${ds.length} graded`,                                  stripe:'var(--design)'},
+    {label:'Combined avg',  value:(cs.length&&ds.length)?oa.toFixed(1):'—', sub:'avg of both',                              stripe:'linear-gradient(90deg,var(--copy),var(--design))'},
+    {label:'Perfect builds',value:builds.filter(b=>b.copyScore===100&&b.designScore===100).length, sub:'100 copy & design', stripe:'var(--green)'},
+    {label:'Designers',     value:[...new Set(builds.map(b=>b.designer))].size, sub:'active this period',                   stripe:'var(--blue)'},
+    {label:'Months tracked',value:[...new Set(builds.map(b=>b.month))].size,   sub:'in view',                              stripe:'var(--brd2)'},
   ];
-
-  el.innerHTML = cards.map(c => `
-    <div class="sc">
-      <div class="sc-stripe" style="background:${c.stripe}"></div>
-      <div class="sc-label">${c.label}</div>
-      <div class="sc-value">${c.value}</div>
-      <div class="sc-sub">${c.sub}</div>
-    </div>`).join('');
+  el.innerHTML=cards.map(c=>`<div class="sc"><div class="sc-stripe" style="background:${c.stripe}"></div><div class="sc-label">${c.label}</div><div class="sc-value">${c.value}</div><div class="sc-sub">${c.sub}</div></div>`).join('');
 }
 
 // ── DESIGNER LISTS ────────────────────────────────────────────
-function renderDesignerList(elId, builds, scoreKey) {
-  const el = document.getElementById(elId);
-  const color = scoreKey === 'copy' ? 'var(--copy)' : 'var(--design)';
-  const rows_with_score = builds.filter(b => b[scoreKey + 'Score'] !== null);
-
-  if (!rows_with_score.length) { el.innerHTML = '<div class="empty">No data.</div>'; return; }
-
-  const map = {};
-  rows_with_score.forEach(b => {
-    if (!map[b.designer]) map[b.designer] = [];
-    map[b.designer].push(b[scoreKey + 'Score']);
-  });
-
-  const rows = Object.entries(map)
-    .map(([d, scores]) => ({ name: d, builds: scores.length, avg: avg(scores) }))
-    .sort((a,b) => b.avg - a.avg);
-  const maxAvg = Math.max(...rows.map(r => r.avg));
-
-  el.innerHTML = `
-    <div class="dl-hdr"><div>Designer</div><div style="text-align:center">Builds</div><div>Avg score</div><div></div></div>` +
-    rows.map((r, i) => `
-      <div class="dl-row">
-        <div class="dl-name">${i===0?'🥇 ':''}${r.name}</div>
-        <div class="dl-builds">${r.builds}</div>
-        <div class="dl-bwrap"><div class="dl-bbg"><div class="dl-bfill" style="width:${(r.avg/maxAvg*100).toFixed(1)}%;background:${color}"></div></div></div>
-        <div class="dl-score" style="color:${scoreColor(r.avg)}">${r.avg.toFixed(1)}</div>
-      </div>`).join('');
+function renderDesignerList(elId,builds,scoreKey){
+  const el=document.getElementById(elId);
+  const color=scoreKey==='copy'?'var(--copy)':'var(--design)';
+  const withScore=builds.filter(b=>b[scoreKey+'Score']!==null);
+  if(!withScore.length){ el.innerHTML='<div class="empty">No data.</div>'; return; }
+  const map={};
+  withScore.forEach(b=>{ if(!map[b.designer])map[b.designer]=[]; map[b.designer].push(b[scoreKey+'Score']); });
+  const rows=Object.entries(map).map(([d,sc])=>({name:d,builds:sc.length,avg:avg(sc)})).sort((a,b)=>b.avg-a.avg);
+  const maxAvg=Math.max(...rows.map(r=>r.avg));
+  el.innerHTML=`<div class="dl-hdr"><div>Designer</div><div style="text-align:center">Builds</div><div>Avg score</div><div></div></div>`+
+    rows.map((r,i)=>`<div class="dl-row"><div class="dl-name">${i===0?'🥇 ':''}${r.name}</div><div class="dl-builds">${r.builds}</div><div class="dl-bwrap"><div class="dl-bbg"><div class="dl-bfill" style="width:${(r.avg/maxAvg*100).toFixed(1)}%;background:${color}"></div></div></div><div class="dl-score" style="color:${scoreColor(r.avg)}">${r.avg.toFixed(1)}</div></div>`).join('');
 }
-
-// ── MONTH CHART ───────────────────────────────────────────────
-
-
 
 // ── TABLE ─────────────────────────────────────────────────────
-function renderTable(builds) {
-  const sorted = [...builds].sort((a,b) => b.date.localeCompare(a.date));
-  document.getElementById('table-count').textContent = `${sorted.length} builds`;
-
-  const tbody = document.getElementById('table-body');
-  if (!sorted.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">No builds match your filters.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = sorted.map(b => {
-    const copyChip   = b.copyScore   !== null ? `<span class="score-chip" style="${chipStyle(b.copyScore)}">${b.copyScore}</span>`   : `<span style="color:var(--text3);font-size:12px">—</span>`;
-    const designChip = b.designScore !== null ? `<span class="score-chip" style="${chipStyle(b.designScore)}">${b.designScore}</span>` : `<span style="color:var(--text3);font-size:12px">—</span>`;
-    const as = avgScore(b);
-    const avgChip = as !== null ? `<span class="score-chip" style="${chipStyle(as)}">${as % 1 === 0 ? as : as.toFixed(1)}</span>` : `<span style="color:var(--text3);font-size:12px">—</span>`;
-    return `<tr>
-      <td style="color:var(--text3);white-space:nowrap">${b.date}</td>
-      <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${b.account}">${b.account}</td>
-      <td style="white-space:nowrap">${b.designer}</td>
-      <td>${copyChip}</td>
-      <td>${designChip}</td>
-      <td>${avgChip}</td>
-    </tr>`;
+function renderTable(builds){
+  const sorted=[...builds].sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('table-count').textContent=`${sorted.length} builds`;
+  const tbody=document.getElementById('table-body');
+  if(!sorted.length){ tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--tg)">No builds match your filters.</td></tr>`; return; }
+  tbody.innerHTML=sorted.map(b=>{
+    const cc=b.copyScore!==null?`<span class="chip" style="${chipStyle(b.copyScore)}">${b.copyScore}</span>`:`<span style="color:var(--tg);font-size:12px">—</span>`;
+    const dc=b.designScore!==null?`<span class="chip" style="${chipStyle(b.designScore)}">${b.designScore}</span>`:`<span style="color:var(--tg);font-size:12px">—</span>`;
+    const as=avgScore(b);
+    const ac=as!==null?`<span class="chip" style="${chipStyle(as)}">${as%1===0?as:as.toFixed(1)}</span>`:`<span style="color:var(--tg);font-size:12px">—</span>`;
+    return `<tr><td style="color:var(--tg);white-space:nowrap">${b.date}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${b.account}">${b.account}</td><td style="white-space:nowrap;color:var(--tw)">${b.designer}</td><td>${cc}</td><td>${dc}</td><td>${ac}</td></tr>`;
   }).join('');
 }
 
-// ── BONUS TRACKER ─────────────────────────────────────────────
-const EXEMPT_DESIGNERS = ['Elizabeth Mell', 'Daniela Nava'];
-const MIN_BUILDS = 7, MIN_AVG = 95;
+// ── BONUS ─────────────────────────────────────────────────────
+function renderBonus(){
+  const mv=document.getElementById('bonus-month').value;
+  const mf=mv==='all'?null:parseInt(mv);
+  const builds=mf?BUILDS.filter(b=>b.month===mf):BUILDS;
+  const designers=[...new Set(builds.map(b=>b.designer))].sort();
 
-function renderBonus() {
-  const mv = document.getElementById('bonus-month').value;
-  const mf = mv === 'all' ? null : parseInt(mv);
-  const builds = mf ? BUILDS.filter(b => b.month === mf) : BUILDS;
-
-  const designers = [...new Set(builds.map(b => b.designer))].sort();
-
-  const results = designers.map(d => {
-    const dBuilds = builds.filter(b => b.designer === d);
-    const copyScores   = dBuilds.filter(b => b.copyScore   !== null).map(b => b.copyScore);
-    const designScores = dBuilds.filter(b => b.designScore !== null).map(b => b.designScore);
-    const totalBuilds  = dBuilds.length;
-    const ca = copyScores.length   ? avg(copyScores)   : null;
-    const da = designScores.length ? avg(designScores) : null;
-    const comb = (ca !== null && da !== null) ? (ca + da) / 2 : (ca ?? da);
-    const exempt   = EXEMPT_DESIGNERS.includes(d);
-    const mbuilds  = totalBuilds >= MIN_BUILDS;
-    const mscore   = comb !== null && comb >= MIN_AVG;
-    const hasBoth  = ca !== null && da !== null;
+  const results=designers.map(d=>{
+    const db=builds.filter(b=>b.designer===d);
+    const cs=db.filter(b=>b.copyScore!==null).map(b=>b.copyScore);
+    const ds=db.filter(b=>b.designScore!==null).map(b=>b.designScore);
+    const total=db.length;
+    const ca=cs.length?avg(cs):null;
+    const da=ds.length?avg(ds):null;
+    const comb=(ca!==null&&da!==null)?(ca+da)/2:(ca??da);
+    const exempt=EXEMPT.includes(d);
+    const mbuilds=total>=MIN_BUILDS;
+    const mscore=comb!==null&&comb>=MIN_AVG;
+    const hasBoth=ca!==null&&da!==null;
     let status;
-    if (exempt)               status = 'exempt';
-    else if (!hasBoth)        status = 'not-qualified';
-    else if (mbuilds && mscore) status = 'eligible';
-    else                      status = 'ineligible';
-    return { d, totalBuilds, ca, da, comb, mbuilds, mscore, hasBoth, exempt, status };
+    if(exempt) status='exempt';
+    else if(!hasBoth) status='not-qualified';
+    else if(mbuilds&&mscore) status='eligible';
+    else status='ineligible';
+    return {d,total,ca,da,comb,mbuilds,mscore,hasBoth,exempt,status};
   });
 
-  const order = { eligible:0, ineligible:1, 'not-qualified':2, exempt:3 };
-  results.sort((a,b) => order[a.status]-order[b.status] || a.d.localeCompare(b.d));
+  const order={eligible:0,ineligible:1,'not-qualified':2,exempt:3};
+  results.sort((a,b)=>order[a.status]-order[b.status]||a.d.localeCompare(b.d));
 
-  const el = results.filter(r => r.status==='eligible').length;
-  const il = results.filter(r => r.status==='ineligible').length;
-  const xl = results.filter(r => r.status==='exempt').length;
+  const el=results.filter(r=>r.status==='eligible').length;
+  const il=results.filter(r=>r.status==='ineligible').length;
+  const xl=results.filter(r=>r.status==='exempt').length;
 
-  document.getElementById('bonus-summary-bar').innerHTML = `
-    <div class="bstat">🏅 <strong>${el}</strong> earn the bonus</div>
+  document.getElementById('bonus-bar').innerHTML=`
+    <div>🏅 <strong>${el}</strong> earn the bonus</div>
     <span class="bsep">·</span>
-    <div class="bstat" style="color:var(--red-text)"><strong>${il}</strong> did not qualify</div>
+    <div style="color:var(--red-t)"><strong>${il}</strong> did not qualify</div>
     <span class="bsep">·</span>
-    <div class="bstat"><strong>${xl}</strong> exempt</div>
+    <div><strong>${xl}</strong> exempt</div>
     <span class="bsep" style="margin-left:auto">·</span>
-    <div class="bstat" style="font-style:italic;color:var(--text3)">${mf ? MN[mf] : 'All months'} &nbsp;·&nbsp; Min ${MIN_BUILDS} builds &nbsp;·&nbsp; Min ${MIN_AVG}% avg</div>`;
+    <div style="color:var(--tg);font-style:italic">${mf?MN[mf]:'All months'} · Min ${MIN_BUILDS} builds · Min ${MIN_AVG}%</div>`;
 
-  document.getElementById('bonus-grid').innerHTML = results.map(r => {
-    const cv = r.ca !== null ? r.ca.toFixed(1) : '—';
-    const dv = r.da !== null ? r.da.toFixed(1) : '—';
-    const xv = r.comb !== null ? r.comb.toFixed(2) : '—';
-    const bc = r.mbuilds ? 'pass' : (r.exempt ? 'neutral' : 'fail');
-    let badgeCls, badgeTxt;
-    if      (r.status==='eligible')     { badgeCls='bb-eligible';      badgeTxt='✓ Bonus eligible'; }
-    else if (r.status==='ineligible')   { badgeCls='bb-ineligible';    badgeTxt='✗ Not eligible'; }
-    else if (r.status==='exempt')       { badgeCls='bb-exempt';        badgeTxt='Exempt'; }
-    else                                { badgeCls='bb-not-qualified'; badgeTxt='Incomplete data'; }
-    const miss = !r.hasBoth && !r.exempt
-      ? `<div class="bmissing">⚠ Missing ${r.ca===null?'Copy':'Design'} QA data for this period</div>` : '';
-    return `
-      <div class="bcard ${r.status}">
-        <div class="bcard-stripe"></div>
-        <div class="bcard-hdr">
-          <div class="bcard-name">${r.d}</div>
-          <span class="bcard-badge ${badgeCls}">${badgeTxt}</span>
-        </div>
-        <div class="brows">
-          <div class="brow"><span class="brow-label">Builds</span><span class="brow-val ${bc}">${r.totalBuilds}${!r.mbuilds&&!r.exempt?' <span style="font-size:10px;font-weight:400;color:var(--text3)">(need '+MIN_BUILDS+')</span>':''}</span></div>
-          <div class="brow"><span class="brow-label">Copy QA avg</span><span class="brow-val ${r.ca!==null?(r.ca>=MIN_AVG?'pass':'warn'):'neutral'}">${cv}</span></div>
-          <div class="brow"><span class="brow-label">Design QA avg</span><span class="brow-val ${r.da!==null?(r.da>=MIN_AVG?'pass':'warn'):'neutral'}">${dv}</span></div>
-          <div class="bdiv"></div>
-          <div class="bcombined">
-            <span class="bcombined-label">Combined avg</span>
-            <span class="bcombined-val" style="color:${r.comb!==null?scoreColor(r.comb):'var(--text3)'}">${xv}%</span>
-          </div>
-        </div>
-        ${miss}
-      </div>`;
+  currentWinners=results.filter(r=>r.status==='eligible');
+  const slackSec=document.getElementById('slack-section');
+  slackSec.style.display=currentWinners.length?'block':'none';
+
+  document.getElementById('bonus-grid').innerHTML=results.map(r=>{
+    const cv=r.ca!==null?r.ca.toFixed(1):'—';
+    const dv=r.da!==null?r.da.toFixed(1):'—';
+    const xv=r.comb!==null?r.comb.toFixed(2):'—';
+    const bc=r.mbuilds?'pass':(r.exempt?'neutral':'fail');
+    let badgeCls,badgeTxt;
+    if(r.status==='eligible'){badgeCls='bb-eligible';badgeTxt='✓ Bonus eligible';}
+    else if(r.status==='ineligible'){badgeCls='bb-ineligible';badgeTxt='✗ Not eligible';}
+    else if(r.status==='exempt'){badgeCls='bb-exempt';badgeTxt='Exempt';}
+    else{badgeCls='bb-nq';badgeTxt='Incomplete data';}
+    const miss=!r.hasBoth&&!r.exempt?`<div class="bmissing">⚠ Missing ${r.ca===null?'Copy':'Design'} QA data for this period</div>`:'';
+    return `<div class="bcard ${r.status}"><div class="bcard-stripe"></div><div class="bcard-hdr"><div class="bcard-name">${r.d}</div><span class="bcard-badge ${badgeCls}">${badgeTxt}</span></div><div class="brows"><div class="brow"><span class="brow-label">Builds</span><span class="brow-val ${bc}">${r.total}${!r.mbuilds&&!r.exempt?' <span style="font-size:10px;font-weight:400;color:var(--tg)">(need '+MIN_BUILDS+')</span>':''}</span></div><div class="brow"><span class="brow-label">Copy QA avg</span>${scoreBar(r.ca)}</div><div class="brow"><span class="brow-label">Design QA avg</span>${scoreBar(r.da)}</div><div class="bdiv"></div><div class="bcombined"><span class="bcombined-label">Combined avg</span><span class="bcombined-val" style="color:${r.comb!==null?scoreColor(r.comb):'var(--tg)'}">${xv}%</span></div></div>${miss}</div>`;
   }).join('');
+}
+
+// ── SLACK ─────────────────────────────────────────────────────
+function sendSlackNotifications(){
+  if(!currentWinners.length) return;
+  const month=getPrevMonth();
+  const lines=currentWinners.map(w=>{
+    const email=EMAIL_MAP[normKey(w.d)]||'(email not found)';
+    return `- ${w.d} (${email}): "Congratulations, you earned the bonus for the month of ${month}, for ${w.comb.toFixed(2)}% :)"`;
+  }).join('\n');
+  const prompt=`Please send the following Slack DMs to each bonus winner. Look up each user by their email address and send them the message listed:\n\n${lines}`;
+  const btn=document.getElementById('slack-btn');
+  const orig=btn.innerHTML;
+  navigator.clipboard.writeText(prompt).then(()=>{
+    btn.innerHTML='<svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied! Paste in Claude to send';
+    btn.style.background='var(--green)';
+    setTimeout(()=>{ btn.innerHTML=orig; btn.style.background=''; },3500);
+  }).catch(()=>{ alert('Copy failed. Paste this in Claude:\n\n'+prompt); });
 }
 
 // ── EVENTS ────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  ['f-designer','f-month','f-score'].forEach(id =>
-    document.getElementById(id).addEventListener('change', renderAll));
-  document.getElementById('bonus-month').addEventListener('change', renderBonus);
+document.addEventListener('DOMContentLoaded',()=>{
+  ['f-designer','f-month','f-type','f-score'].forEach(id=>document.getElementById(id).addEventListener('change',renderAll));
+  document.getElementById('bonus-month').addEventListener('change',renderBonus);
   loadData();
 });
 </script>
