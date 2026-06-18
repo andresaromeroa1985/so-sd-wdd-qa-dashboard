@@ -237,6 +237,9 @@ tbody tr:hover td{background:var(--s4)}
           <option value="1">January</option><option value="2">February</option>
           <option value="3">March</option><option value="4">April</option>
           <option value="5">May</option><option value="6">June</option>
+          <option value="7">July</option><option value="8">August</option>
+          <option value="9">September</option><option value="10">October</option>
+          <option value="11">November</option><option value="12">December</option>
         </select>
       </div>
       <div class="fsep"></div>
@@ -535,13 +538,20 @@ function renderStats(builds){
   const cs=builds.filter(b=>b.copyScore!==null).map(b=>b.copyScore);
   const ds=builds.filter(b=>b.designScore!==null).map(b=>b.designScore);
   const ca=avg(cs),da=avg(ds),oa=(ca+da)/2;
+  const uniqueDesigners=Array.from(new Set(builds.map(b=>b.designer))).length;
+  const uniqueMonths=Array.from(new Set(builds.map(b=>b.month))).length;
+  const perfect=builds.filter(b=>b.copyScore===100&&b.designScore===100).length;
+  // Historic combined avg: per-build avg across all builds that have both scores
+  const bothScores=builds.filter(b=>b.copyScore!==null&&b.designScore!==null).map(b=>(b.copyScore+b.designScore)/2);
+  const historicAvg=bothScores.length?avg(bothScores):null;
   const cards=[
-    {label:'Copy QA avg',   value:cs.length?ca.toFixed(1):'—',  sub:`${cs.length} graded`,                                  stripe:'var(--copy)'},
-    {label:'Design QA avg', value:ds.length?da.toFixed(1):'—',  sub:`${ds.length} graded`,                                  stripe:'var(--design)'},
-    {label:'Combined avg',  value:(cs.length&&ds.length)?oa.toFixed(1):'—', sub:'avg of both',                              stripe:'linear-gradient(90deg,var(--copy),var(--design))'},
-    {label:'Perfect builds',value:builds.filter(b=>b.copyScore===100&&b.designScore===100).length, sub:'100 copy & design', stripe:'var(--green)'},
-    {label:'Designers',     value:[...new Set(builds.map(b=>b.designer))].size, sub:'active this period',                   stripe:'var(--blue)'},
-    {label:'Months tracked',value:[...new Set(builds.map(b=>b.month))].size,   sub:'in view',                              stripe:'var(--brd2)'},
+    {label:'Copy QA avg',          value:cs.length?ca.toFixed(1):'—',              sub:`${cs.length} graded`,           stripe:'var(--copy)'},
+    {label:'Design QA avg',        value:ds.length?da.toFixed(1):'—',              sub:`${ds.length} graded`,           stripe:'var(--design)'},
+    {label:'Combined avg',         value:(cs.length&&ds.length)?oa.toFixed(1):'—', sub:'avg of both QA avgs',           stripe:'linear-gradient(90deg,var(--copy),var(--design))'},
+    {label:'Historic team avg',    value:historicAvg!==null?historicAvg.toFixed(2)+'%':'—', sub:`across all ${bothScores.length} scored builds`, stripe:'linear-gradient(90deg,var(--blue),var(--design))'},
+    {label:'Perfect builds',       value:perfect,                                  sub:'100 copy & design',             stripe:'var(--green)'},
+    {label:'Designers',            value:uniqueDesigners,                          sub:'active this period',            stripe:'var(--blue)'},
+    {label:'Months tracked',       value:uniqueMonths,                             sub:'in view',                       stripe:'var(--brd2)'},
   ];
   el.innerHTML=cards.map(c=>`<div class="sc"><div class="sc-stripe" style="background:${c.stripe}"></div><div class="sc-label">${c.label}</div><div class="sc-value">${c.value}</div><div class="sc-sub">${c.sub}</div></div>`).join('');
 }
