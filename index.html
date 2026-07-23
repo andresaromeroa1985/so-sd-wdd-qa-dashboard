@@ -608,7 +608,18 @@ function renderBonus(){
   const results=designers.map(d=>{
     const cs=copyF.filter(r=>r.designer===d).map(r=>r.score);
     const ds=designF.filter(r=>r.designer===d).map(r=>r.score);
-    const total=cs.length+ds.length;
+    // FIX: "Builds" must count each unique build once, not Copy rows + Design rows.
+    // Every real build normally gets one Copy QA entry AND one Design QA entry, so
+    // cs.length + ds.length silently double-counts every build (e.g. 5 Copy + 5 Design
+    // rows for the same 5 builds was showing as "10 builds"). We instead dedupe on
+    // account + month across both QA types.
+    const copyRowsForD   = copyF.filter(r=>r.designer===d);
+    const designRowsForD = designF.filter(r=>r.designer===d);
+    const buildKeys = new Set([
+      ...copyRowsForD.map(r=>normKey(r.account)+'|'+r.month),
+      ...designRowsForD.map(r=>normKey(r.account)+'|'+r.month)
+    ]);
+    const total = buildKeys.size;
     const ca=cs.length?avg(cs):null;
     const da=ds.length?avg(ds):null;
     const comb=(ca!==null&&da!==null)?(ca+da)/2:(ca??da);
