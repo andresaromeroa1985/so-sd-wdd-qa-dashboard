@@ -316,7 +316,7 @@ tbody tr:hover td{background:var(--s4)}
         <option value="3">March</option><option value="4">April</option>
         <option value="5">May</option><option value="6">June</option>
       </select>
-      <span style="font-size:12px;color:var(--tg)">Rules: ≥7 builds · combined avg ≥95% · Elizabeth &amp; Daniela exempt</span>
+      <span style="font-size:12px;color:var(--tg)">Rules: builds ≥ prorated target (7/22 days per month, minus PTO &amp; revisions) · combined avg ≥95% · Elizabeth &amp; Daniela exempt</span>
     </div>
     <div class="bonus-grid" id="bonus-grid"></div>
 
@@ -334,11 +334,20 @@ tbody tr:hover td{background:var(--s4)}
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
-const COPY_QA_URL   = 'https://script.google.com/macros/s/AKfycbwS24Osis8YPSpBtYbl1HOo6BopEF9-KKni5oOFid0BGuAxpXazYdrJYHg2OBvKjP45jg/exec';
-const DESIGN_QA_URL = 'https://script.google.com/macros/s/AKfycbyPiVxBgM_rrDbY9ZApigutMA0li9fzyefarva2NFqxTBlJurMuqGXF5XbQRxP1QpfV2A/exec';
+const COPY_QA_URL     = 'https://script.google.com/macros/s/AKfycbwS24Osis8YPSpBtYbl1HOo6BopEF9-KKni5oOFid0BGuAxpXazYdrJYHg2OBvKjP45jg/exec';
+const DESIGN_QA_URL   = 'https://script.google.com/macros/s/AKfycbyPiVxBgM_rrDbY9ZApigutMA0li9fzyefarva2NFqxTBlJurMuqGXF5XbQRxP1QpfV2A/exec';
+const NONBUILD_URL    = 'PASTE_YOUR_DEPLOYED_NONBUILD_CONNECTOR_URL_HERE';
 
 const EXEMPT = ['Elizabeth Mell', 'Daniela Nava'];
 const MIN_BUILDS = 7, MIN_AVG = 95;
+
+// The bonus target (MIN_BUILDS) was calibrated against a 22-business-day month.
+// We hold that daily rate fixed and prorate against each month's ACTUAL
+// business days minus each designer's PTO/revisions-queue days, rather than
+// re-deriving a new flat target per month (that's what caused June/July to
+// produce confusingly similar thresholds despite very different vacation time).
+const STANDARD_BUSINESS_DAYS = 22;
+const DAILY_BUILD_RATE = MIN_BUILDS / STANDARD_BUSINESS_DAYS;
 
 const EMAIL_MAP = {
   'marco garcia':   'marco.garcia@spoton.com',
@@ -364,7 +373,31 @@ const MN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov'
 let BUILDS = [];       // merged, for build log table only
 let COPY_ROWS = [];    // raw copy rows, for accurate averages
 let DESIGN_ROWS = [];  // raw design rows, for accurate averages
+let NONBUILD_ROWS = []; // {designer, month, ooo, revisions} from the calendar connector
 let currentWinners = [];
+
+// ── PRORATED BONUS THRESHOLD ───────────────────────────────────
+function businessDaysInMonth(year, month){ // month: 1-12
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= daysInMonth; d++){
+    const dow = new Date(year, month - 1, d).getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return count;
+}
+function nonBuildDaysFor(designer, month){
+  const row = NONBUILD_ROWS.find(r => r.designer===designer && r.month===month);
+  return row ? { ooo: row.ooo, revisions: row.revisions } : { ooo: 0, revisions: 0 };
+}
+// Required builds for one month, floored so a designer is never denied the
+// bonus due to a rounding artifact — always rounds in their favor.
+function requiredBuildsForMonth(designer, month, year=2026){
+  const totalBizDays = businessDaysInMonth(year, month);
+  const nb = nonBuildDaysFor(designer, month);
+  const availableDays = Math.max(totalBizDays - nb.ooo - nb.revisions, 0);
+  return Math.floor(DAILY_BUILD_RATE * availableDays);
+}
 
 // ── HELPERS ───────────────────────────────────────────────────
 function normName(n){ return NAME_MAP[n.toLowerCase().trim()] || n.trim(); }
@@ -451,6 +484,13 @@ async function loadData(){
     if(dr.status!=='ok') throw new Error('Design QA: '+dr.message);
     COPY_ROWS  =cr.data.map(r=>({...r,designer:normName(r.designer)}));
     DESIGN_ROWS=dr.data.map(r=>({...r,designer:normName(r.designer)}));
+    try{
+      const nb = await jsonp(NONBUILD_URL);
+      if(nb.status==='ok') NONBUILD_ROWS = nb.data.map(r=>({...r,designer:normName(r.designer)}));
+    }catch(nbErr){
+      console.warn('Non-build days connector unavailable, proration will use 0 non-build days:', nbErr);
+      NONBUILD_ROWS = [];
+    }
     BUILDS=mergeBuilds(COPY_ROWS,DESIGN_ROWS);
     // populate designer filter from union of all designer names
     const designers=[...new Set([...COPY_ROWS,...DESIGN_ROWS].map(r=>r.designer))].sort();
@@ -608,11 +648,6 @@ function renderBonus(){
   const results=designers.map(d=>{
     const cs=copyF.filter(r=>r.designer===d).map(r=>r.score);
     const ds=designF.filter(r=>r.designer===d).map(r=>r.score);
-    // FIX: "Builds" must count each unique build once, not Copy rows + Design rows.
-    // Every real build normally gets one Copy QA entry AND one Design QA entry, so
-    // cs.length + ds.length silently double-counts every build (e.g. 5 Copy + 5 Design
-    // rows for the same 5 builds was showing as "10 builds"). We instead dedupe on
-    // account + month across both QA types.
     const copyRowsForD   = copyF.filter(r=>r.designer===d);
     const designRowsForD = designF.filter(r=>r.designer===d);
     const buildKeys = new Set([
@@ -620,11 +655,21 @@ function renderBonus(){
       ...designRowsForD.map(r=>normKey(r.account)+'|'+r.month)
     ]);
     const total = buildKeys.size;
+
+    const monthsInView = [...new Set([...copyRowsForD, ...designRowsForD].map(r=>r.month))];
+    let required = 0, totalOOO = 0, totalRevisions = 0;
+    monthsInView.forEach(m=>{
+      required += requiredBuildsForMonth(d, m);
+      const nb = nonBuildDaysFor(d, m);
+      totalOOO += nb.ooo;
+      totalRevisions += nb.revisions;
+    });
+
     const ca=cs.length?avg(cs):null;
     const da=ds.length?avg(ds):null;
     const comb=(ca!==null&&da!==null)?(ca+da)/2:(ca??da);
     const exempt=EXEMPT.includes(d);
-    const mbuilds=total>=MIN_BUILDS;
+    const mbuilds=total>=required;
     const mscore=comb!==null&&comb>=MIN_AVG;
     const hasBoth=ca!==null&&da!==null;
     let status;
@@ -632,7 +677,7 @@ function renderBonus(){
     else if(!hasBoth) status='not-qualified';
     else if(mbuilds&&mscore) status='eligible';
     else status='ineligible';
-    return {d,total,ca,da,comb,mbuilds,mscore,hasBoth,exempt,status};
+    return {d,total,required,totalOOO,totalRevisions,ca,da,comb,mbuilds,mscore,hasBoth,exempt,status};
   });
 
   const order={eligible:0,ineligible:1,'not-qualified':2,exempt:3};
@@ -666,7 +711,10 @@ function renderBonus(){
     else if(r.status==='exempt'){badgeCls='bb-exempt';badgeTxt='Exempt';}
     else{badgeCls='bb-nq';badgeTxt='Incomplete data';}
     const miss=!r.hasBoth&&!r.exempt?`<div class="bmissing">⚠ Missing ${r.ca===null?'Copy':'Design'} QA data for this period</div>`:'';
-    return `<div class="bcard ${r.status}"><div class="bcard-stripe"></div><div class="bcard-hdr"><div class="bcard-name">${r.d}</div><span class="bcard-badge ${badgeCls}">${badgeTxt}</span></div><div class="brows"><div class="brow"><span class="brow-label">Builds</span><span class="brow-val ${bc}">${r.total}${!r.mbuilds&&!r.exempt?' <span style="font-size:10px;font-weight:400;color:var(--tg)">(need '+MIN_BUILDS+')</span>':''}</span></div><div class="brow"><span class="brow-label">Copy QA avg</span>${scoreBar(r.ca)}</div><div class="brow"><span class="brow-label">Design QA avg</span>${scoreBar(r.da)}</div><div class="bdiv"></div><div class="bcombined"><span class="bcombined-label">Combined avg</span><span class="bcombined-val" style="color:${r.comb!==null?scoreColor(r.comb):'var(--tg)'}">${xv}%</span></div></div>${miss}</div>`;
+    const prorateNote = r.exempt ? '' : (r.totalOOO>0||r.totalRevisions>0
+      ? ` <span style="font-size:10px;font-weight:400;color:var(--tg)">(required ${r.required} — prorated: ${r.totalOOO} PTO, ${r.totalRevisions} revisions)</span>`
+      : ` <span style="font-size:10px;font-weight:400;color:var(--tg)">(required ${r.required})</span>`);
+    return `<div class="bcard ${r.status}"><div class="bcard-stripe"></div><div class="bcard-hdr"><div class="bcard-name">${r.d}</div><span class="bcard-badge ${badgeCls}">${badgeTxt}</span></div><div class="brows"><div class="brow"><span class="brow-label">Builds</span><span class="brow-val ${bc}">${r.total}${prorateNote}</span></div><div class="brow"><span class="brow-label">Copy QA avg</span>${scoreBar(r.ca)}</div><div class="brow"><span class="brow-label">Design QA avg</span>${scoreBar(r.da)}</div><div class="bdiv"></div><div class="bcombined"><span class="bcombined-label">Combined avg</span><span class="bcombined-val" style="color:${r.comb!==null?scoreColor(r.comb):'var(--tg)'}">${xv}%</span></div></div>${miss}</div>`;
   }).join('');
 }
 
