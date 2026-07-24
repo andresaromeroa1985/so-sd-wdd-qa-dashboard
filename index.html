@@ -336,7 +336,7 @@ tbody tr:hover td{background:var(--s4)}
 // ── CONFIG ────────────────────────────────────────────────────
 const COPY_QA_URL     = 'https://script.google.com/macros/s/AKfycbwS24Osis8YPSpBtYbl1HOo6BopEF9-KKni5oOFid0BGuAxpXazYdrJYHg2OBvKjP45jg/exec';
 const DESIGN_QA_URL   = 'https://script.google.com/macros/s/AKfycbyPiVxBgM_rrDbY9ZApigutMA0li9fzyefarva2NFqxTBlJurMuqGXF5XbQRxP1QpfV2A/exec';
-const NONBUILD_URL    = 'https://script.google.com/macros/s/AKfycbxk7eUjdkdFetuB6WWv1K14M7L5_98MRfFknNxnfZVQ9XIxk4VDinOxQMx5RenPdl-U/exec';
+const NONBUILD_URL    = 'PASTE_YOUR_DEPLOYED_NONBUILD_CONNECTOR_URL_HERE';
 
 const EXEMPT = ['Elizabeth Mell', 'Daniela Nava'];
 const MIN_BUILDS = 7, MIN_AVG = 95;
@@ -445,16 +445,45 @@ function jsonp(url){
   });
 }
 
+// ── FUZZY ACCOUNT MATCHING ──────────────────────────────────────
+// Business names are sometimes typed slightly differently between the Copy
+// and Design QA forms for the same actual build (e.g. "Eleanors Pizza" vs
+// "Eleanors Pizza Path", "Zesty Eats" vs "Zesty Eatz"). An exact-string merge
+// treats these as two separate builds. We allow a small amount of slack —
+// but only ever between candidates already restricted to the same designer
+// and same month, which keeps the risk of merging two different businesses
+// very low.
+function levenshtein(a, b){
+  const m=a.length, n=b.length;
+  if(!m) return n; if(!n) return m;
+  let prev=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){
+    const curr=[i];
+    for(let j=1;j<=n;j++){
+      const cost = a[i-1]===b[j-1] ? 0 : 1;
+      curr[j]=Math.min(prev[j]+1, curr[j-1]+1, prev[j-1]+cost);
+    }
+    prev=curr;
+  }
+  return prev[n];
+}
+function accountsMatch(a, b){
+  const x=normKey(a), y=normKey(b);
+  if(x===y) return true;
+  if(x.length>3 && y.length>3 && (x.includes(y)||y.includes(x))) return true; // extra word/suffix
+  return levenshtein(x,y)<=2; // single typo / stray character
+}
+
 // ── MERGE BUILDS ─────────────────────────────────────────────
 function mergeBuilds(copyRows, designRows){
   const builds=[], designUsed=new Set();
   copyRows.forEach(c=>{
-    const ck=normKey(c.account)+'|'+normName(c.designer).toLowerCase()+'|'+c.month;
+    const cDesigner=normName(c.designer).toLowerCase();
     let mi=-1;
     for(let i=0;i<designRows.length;i++){
       if(designUsed.has(i)) continue;
       const d=designRows[i];
-      if(normKey(d.account)+'|'+normName(d.designer).toLowerCase()+'|'+d.month===ck){ mi=i; break; }
+      if(normName(d.designer).toLowerCase()===cDesigner && d.month===c.month && accountsMatch(d.account,c.account)){ mi=i; break; }
     }
     const dr=mi>=0?designRows[mi]:null;
     if(mi>=0) designUsed.add(mi);
@@ -650,11 +679,13 @@ function renderBonus(){
     const ds=designF.filter(r=>r.designer===d).map(r=>r.score);
     const copyRowsForD   = copyF.filter(r=>r.designer===d);
     const designRowsForD = designF.filter(r=>r.designer===d);
-    const buildKeys = new Set([
-      ...copyRowsForD.map(r=>normKey(r.account)+'|'+r.month),
-      ...designRowsForD.map(r=>normKey(r.account)+'|'+r.month)
-    ]);
-    const total = buildKeys.size;
+    // Reuse the same merged/deduped build list used everywhere else in the
+    // dashboard (Insights, Build log) rather than re-deriving a separate
+    // dedup here — keeps exactly one merge algorithm as the source of truth.
+    const relevantBuilds = mf!=null
+      ? BUILDS.filter(b=>b.designer===d && b.month===mf)
+      : BUILDS.filter(b=>b.designer===d);
+    const total = relevantBuilds.length;
 
     const monthsInView = [...new Set([...copyRowsForD, ...designRowsForD].map(r=>r.month))];
     let required = 0, totalOOO = 0, totalRevisions = 0;
