@@ -312,9 +312,6 @@ tbody tr:hover td{background:var(--s4)}
       <span style="font-size:12px;color:var(--tg);font-weight:500">Month:</span>
       <select class="fsel" id="bonus-month" style="min-width:148px">
         <option value="all">All months (combined)</option>
-        <option value="1">January</option><option value="2">February</option>
-        <option value="3">March</option><option value="4">April</option>
-        <option value="5">May</option><option value="6">June</option>
       </select>
       <span style="font-size:12px;color:var(--tg)">Rules: builds ≥ prorated target (7/22 days per month, minus PTO &amp; revisions) · combined avg ≥95% · Elizabeth &amp; Daniela exempt</span>
     </div>
@@ -369,6 +366,7 @@ const NAME_MAP = {
   'miriam galindo':'Miriam Galindo',
 };
 const MN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MN_FULL = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
 
 let BUILDS = [];       // merged, for build log table only
 let COPY_ROWS = [];    // raw copy rows, for accurate averages
@@ -528,6 +526,14 @@ async function loadData(){
     sel.innerHTML='<option value="all">All designers</option>';
     designers.forEach(d=>{ const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o); });
     if(cur!=='all') sel.value=cur;
+    // populate bonus-month filter from union of all months actually present —
+    // no more manually adding a new <option> every time a month rolls over
+    const monthsPresent=[...new Set([...COPY_ROWS,...DESIGN_ROWS].map(r=>r.month))].sort((a,b)=>a-b);
+    const bmSel=document.getElementById('bonus-month');
+    const bmCur=bmSel.value;
+    bmSel.innerHTML='<option value="all">All months (combined)</option>';
+    monthsPresent.forEach(m=>{ const o=document.createElement('option');o.value=m;o.textContent=MN_FULL[m];bmSel.appendChild(o); });
+    if(bmCur!=='all' && monthsPresent.includes(parseInt(bmCur))) bmSel.value=bmCur;
     dot.className='status-dot ok';
     document.getElementById('last-sync').textContent='Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     document.getElementById('loading').style.display='none';
