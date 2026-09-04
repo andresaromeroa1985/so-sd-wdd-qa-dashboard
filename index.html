@@ -313,7 +313,7 @@ tbody tr:hover td{background:var(--s4)}
       <select class="fsel" id="bonus-month" style="min-width:148px">
         <option value="all">All months (combined)</option>
       </select>
-      <span style="font-size:12px;color:var(--tg)">Rules: builds ≥ prorated target (7/22 days/mo through Aug 2026, 8/22 from Sep 2026 — minus PTO only) · combined avg ≥95% · Elizabeth &amp; Daniela exempt</span>
+      <span style="font-size:12px;color:var(--tg)">Rules: builds ≥ prorated target (flat target/actual business days that month, minus PTO — 7/mo through Aug 2026, 8/mo from Sep 2026) · combined avg ≥95% · Elizabeth &amp; Daniela exempt</span>
     </div>
     <div class="bonus-grid" id="bonus-grid"></div>
 
@@ -356,15 +356,14 @@ function minBuildsFor(year, month){
   return result;
 }
 
-// The bonus target was calibrated against a 22-business-day month. We hold
-// that daily rate fixed (recomputed per the target in effect for the month
-// in question) and prorate against each month's ACTUAL business days minus
-// each designer's PTO/revisions-queue days, rather than re-deriving a new
-// flat target per month (that's what caused June/July to produce confusingly
-// similar thresholds despite very different vacation time).
-const STANDARD_BUSINESS_DAYS = 22;
+// The bonus target is a flat monthly number (e.g. 7 in August). Rather than
+// calibrating a fixed daily rate against a standing 22-day month, we derive
+// the rate fresh each month from that month's ACTUAL business days — so a
+// designer with 0 PTO always owes exactly the flat target, in every month,
+// regardless of whether that month happens to have 20 or 23 business days.
 function dailyBuildRateFor(year, month){
-  return minBuildsFor(year, month) / STANDARD_BUSINESS_DAYS;
+  const totalBizDays = businessDaysInMonth(year, month);
+  return totalBizDays > 0 ? minBuildsFor(year, month) / totalBizDays : 0;
 }
 
 const EMAIL_MAP = {
